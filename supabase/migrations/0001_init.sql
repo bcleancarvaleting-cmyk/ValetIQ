@@ -1,6 +1,6 @@
 -- =====================================================================
 -- valetIQ — initial schema (multi-business, row-level security)
--- Run once in Supabase: SQL Editor → New query → paste → Run
+-- Applied to project tigznsqtesgofvoflmem on 16 Nov 2026 (via Supabase connector)
 -- =====================================================================
 
 create extension if not exists pgcrypto;

@@ -513,3 +513,7 @@ join (values
   ('Maintenance Plan','12 visits for a monthly clean, or 24 for fortnightly.','Maintenance Valet', array['Maintenance Valet'], array[12,24], true),
   ('Full Valet Plan','Full inside-and-out valets through the year. Credits can also be used on maintenance valets.','Full Valet', array['Full Valet','Maintenance Valet'], array[6,12], false)
 ) as p(name, descr, svc_name, elig, counts, featured) on p.svc_name = s.name;
+revoke execute on function public.link_my_customer_records() from public, anon;
+grant execute on function public.link_my_customer_records() to authenticated;
+revoke execute on function public.busy_times(uuid, date, date) from public;
+grant execute on function public.busy_times(uuid, date, date) to anon, authenticated;
