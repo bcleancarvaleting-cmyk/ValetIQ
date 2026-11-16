@@ -18,7 +18,7 @@ R("<title>valetIQ — B Clean platform prototype</title>","<title>B Clean Valeti
 # LIVE overrides appended before init
 live=r"""
 /* ================= LIVE (Stage 1) ================= */
-const CFG={name:'B Clean',heroWhite:'B Clean',heroBlue:'Valeting',phone:'07700 900123',whatsapp:'07700 900123',email:'hello@bcleanvaleting.co.uk',facebook:'',instagram:'',tiktok:'',google:''};
+const CFG={name:'B Clean',heroWhite:'B Clean',heroBlue:'Valeting',phone:'07934 852609',whatsapp:'07934 852609',email:'bcleanvaleting@outlook.com',facebook:'https://www.facebook.com/share/192dtBBr77/?mibextid=wwXIfr',instagram:'',tiktok:'',google:''};
 function liveDB(){const t=mkTenant('bclean',CFG.name,'Kent',{heroWhite:CFG.heroWhite,heroBlue:CFG.heroBlue,phone:CFG.phone,whatsapp:CFG.whatsapp,email:CFG.email,excluded:[],surcharges:[]});const S=t.settings;
  S.chat.on=false;S.offers=[];S.social={whatsapp:!!CFG.whatsapp,facebook:!!CFG.facebook,instagram:!!CFG.instagram,tiktok:!!CFG.tiktok};
  S.stats=[{type:'custom',v:'Kent',l:'fully mobile service'},{type:'custom',v:'100%',l:'fully insured'},{type:'custom',v:'20%',l:'off pre-paid plans'},{type:'custom',v:'7 days',l:'online enquiries'}];
@@ -52,5 +52,6 @@ R("\ntry{DB=JSON.parse(localStorage.getItem(LS))}catch(e){}if(!DB||DB.v!==6)DB=s
 R("""<button class="btn" style="align-self:start" onclick="go('account')">Get my code</button>""","""<button class="btn" style="align-self:start" onclick="go('account')">Coming soon</button>""")
 R("✓ One payment, ${n} booking credits added instantly<br>✓ Book online — each visit uses one credit<br>✓ Stamp book shows used & remaining<br>","✓ One payment for the whole year<br>✓ Book your visits whenever suits you<br>")
 R("function render(){applyBrand();renderBar();renderSite();","function render(){applyBrand();renderBar();renderSite();[...document.querySelectorAll('h2')].filter(h=>/Install the/.test(h.textContent)).forEach(h=>h.closest('section').remove());[...document.querySelectorAll('.kick')].filter(k=>/Refer a friend/.test(k.textContent)).forEach(k=>{const c=k.closest('.card');const g=c.parentNode;c.remove();g.classList.remove('g2')});")
+R('''${so.facebook?`<a href="https://facebook.com" title="Facebook">f</a>`:''}${so.instagram?`<a href="https://instagram.com" title="Instagram">IG</a>`:''}${so.tiktok?`<a href="https://tiktok.com" title="TikTok">TT</a>`:''}''','''${so.facebook?`<a href="${esc(CFG.facebook)}" title="Facebook">f</a>`:''}${so.instagram?`<a href="${esc(CFG.instagram)}" title="Instagram">IG</a>`:''}${so.tiktok?`<a href="${esc(CFG.tiktok)}" title="TikTok">TT</a>`:''}''')
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))
