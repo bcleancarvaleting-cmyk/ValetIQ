@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
         const { data: l } = await db.from("payment_links").select("booking_id,business_id").eq("id", o.payment_link).single();
         bookingId = l?.booking_id; businessId = l?.business_id;
       }
-      if (bookingId && businessId) await record(bookingId, businessId, o.payment_intent || o.id, (o.amount_total || 0) / 100, o.metadata?.type === "deposit" ? "deposit" : o.metadata?.type === "full" ? "full" : "balance", o.payment_link || undefined);
+      if (bookingId && businessId) await record(bookingId, businessId, o.payment_intent || o.id, (o.amount_total || 0) / 100, o.metadata?.type === "deposit" ? "deposit" : o.metadata?.type === "full" ? "full" : "balance", o.payment_link || o.id);
     } else if (ev.type === "invoice.paid" && o.metadata?.booking_id && o.amount_paid > 0) {
       await record(o.metadata.booking_id, o.metadata.business_id, o.id, o.amount_paid / 100, "balance", o.id);
     }
