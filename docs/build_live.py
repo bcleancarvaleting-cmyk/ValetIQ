@@ -92,6 +92,6 @@ R(".obar{",""".astrip{background:linear-gradient(90deg,color-mix(in srgb,var(--a
 .ostrip{background:linear-gradient(90deg,color-mix(in srgb,var(--ac) 30%,#07080a),#0b0d12);border-top:1px solid var(--ln);border-bottom:1px solid var(--ln)}.ostrip-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:14px 20px}.ostrip-k{background:var(--ac);color:#fff;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:5px 10px;border-radius:999px;white-space:nowrap}.ostrip-t{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}.ostrip-t b{font-size:16px}.ostrip-t span{font-size:14px;opacity:.8}.ostrip-b{white-space:nowrap}
 @media(max-width:600px){.astrip-in{padding:8px 10px;gap:8px}.astrip-ic{display:none}.astrip-t b{font-size:13px}.astrip-t span{font-size:11.5px}.astrip-b a{padding:6px 9px;font-size:12px}.ostrip-in{flex-wrap:wrap;padding:12px 14px;gap:8px 10px}.ostrip-t{flex-basis:calc(100% - 140px)}.ostrip-b{width:100%}}
 .obar{""")
-R("S.heroSlides=(st.heroSlides||[])","S.appStrip=st.appStrip!==false;S.heroSlides=(st.heroSlides||[])")
+R("S.heroSlides=(st.heroSlides||[])","S.appStrip=st.appStrip===true;S.heroSlides=(st.heroSlides||[])")
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))

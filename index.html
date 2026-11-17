@@ -945,7 +945,7 @@ function applyLive(biz,sv,pl,sl){const st=biz.settings||{};const t=T();const S=t
  S.social={whatsapp:!!CFG.whatsapp,facebook:!!CFG.facebook,instagram:!!CFG.instagram,tiktok:!!CFG.tiktok};S.reviewSources={google:CFG.google,facebook:CFG.facebook,trustpilot:''};
  if(Array.isArray(st.stats))S.stats=st.stats.slice(0,4).map(x=>({type:'custom',v:x.v,l:x.l}));
  if(Array.isArray(st.faq))S.faq=st.faq;['terms','cancel','refund'].forEach(k=>{if(st[k])S[k]=st[k]});
- S.appStrip=st.appStrip!==false;S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.url,caption:''}));
+ S.appStrip=st.appStrip===true;S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.url,caption:''}));
  S.offers=(st.offers||[]).map(o=>({id:o.id,title:o.title||'Offer',text:o.text||'',serviceId:o.serviceId,code:'',expires:o.expires||'',active:!!o.active}));
  if(sl&&sl.length)S.slots=sl.map(x=>({t:x.start_time.slice(0,5),on:x.enabled}));
  const br=st.brand||{};S.logo=br.logo||null;S.showName=br.showName!==false;if(st.accent)S.accent=st.accent;
