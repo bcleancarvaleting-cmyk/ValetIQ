@@ -45,7 +45,26 @@ function sendRequest(how){const t=T(),S=t.settings;if(!val('rqp')||!val('rqn'))r
 function buyPlan(pid){const t=T(),p=t.plans.find(x=>x.id===pid);const sv=t.services.find(x=>x.id===p.serviceId);requestBooking('plan',`Interested in the ${p.name} (${p.counts.join(' or ')} × ${sv.name}, ${planOff(t,p)}% off).`)}
 function buyVoucher(){const S=T().settings;location.href=`https://wa.me/${intl(S.whatsapp)}?text=${encodeURIComponent('Hi '+S.name+", I'd like to buy a gift voucher.")}`}
 function leaveReview(){const S=T().settings;const u=S.reviewSources.google||S.reviewSources.facebook;if(u)location.href=u;else toast('Thanks! Review links are coming soon.')}
-function takeOffer(id){requestBooking(null)}
+function takeOffer(id){const o=(T().settings.offers||[]).find(x=>x.id===id);requestBooking(o&&o.serviceId,o?`Offer: ${o.title} — ${o.text}`:null)}
+
+/* ---- load live content from the valetIQ database ---- */
+async function loadLive(){try{if(!window.supabase||!window.VALETIQ)return;const V=window.VALETIQ;const sbc=window.supabase.createClient(V.supabaseUrl,V.supabaseKey,{auth:{persistSession:false,autoRefreshToken:false}});
+ const{data:biz,error}=await sbc.from('businesses').select('id,name,settings').eq('slug',V.business).single();if(error||!biz)return;
+ const[sv,pl,sl]=await Promise.all([sbc.from('services').select('*').eq('business_id',biz.id).order('sort'),sbc.from('plans').select('*').eq('business_id',biz.id),sbc.from('time_slots').select('*').eq('business_id',biz.id).order('start_time')]);
+ applyLive(biz,sv.data,pl.data,sl.data)}catch(e){console.warn('Live content not loaded',e)}}
+function applyLive(biz,sv,pl,sl){const st=biz.settings||{};const t=T();const S=t.settings;const so=st.social||{};
+ Object.assign(CFG,{name:biz.name,heroWhite:st.heroWhite||biz.name,heroBlue:st.heroBlue||'',phone:st.phone||CFG.phone,whatsapp:st.whatsapp||CFG.whatsapp,email:st.email||CFG.email,facebook:so.facebook||'',instagram:so.instagram||'',tiktok:so.tiktok||'',google:so.google||''});
+ Object.assign(S,{name:biz.name,heroWhite:CFG.heroWhite,heroBlue:CFG.heroBlue,heroDesc:st.heroDesc||S.heroDesc,phone:CFG.phone,whatsapp:CFG.whatsapp,email:CFG.email,depositPct:st.depositPct??20,prepaidOff:st.prepaidOff??20});
+ S.social={whatsapp:!!CFG.whatsapp,facebook:!!CFG.facebook,instagram:!!CFG.instagram,tiktok:!!CFG.tiktok};S.reviewSources={google:CFG.google,facebook:CFG.facebook,trustpilot:''};
+ if(Array.isArray(st.stats))S.stats=st.stats.slice(0,4).map(x=>({type:'custom',v:x.v,l:x.l}));
+ if(Array.isArray(st.faq))S.faq=st.faq;['terms','cancel','refund'].forEach(k=>{if(st[k])S[k]=st[k]});
+ S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.url,caption:''}));
+ S.offers=(st.offers||[]).map(o=>({id:o.id,title:o.title||'Offer',text:o.text||'',serviceId:o.serviceId,code:'',expires:o.expires||'',active:!!o.active}));
+ if(sl&&sl.length)S.slots=sl.map(x=>({t:x.start_time.slice(0,5),on:x.enabled}));
+ if(sv&&sv.length)t.services=sv.map(s=>{const sm=+s.price_small||0,md=s.price_medium!=null?+s.price_medium:sm,lg=s.price_large!=null?+s.price_large:md;return{id:s.id,cat:s.category,name:s.name,p:[sm,md,lg],mins:s.duration_mins,days:s.days,label:s.day_label,redeem:s.redeemable,active:s.active,desc:s.description,inc:s.includes||[],img:s.image_url||null,poa:s.price_on_request}});
+ if(pl)t.plans=pl.filter(p=>t.services.some(s=>s.id===p.service_id)).map(p=>({id:p.id,name:p.name,serviceId:p.service_id,eligible:p.eligible||[],counts:p.counts||[12],months:p.months||12,off:p.discount_pct,desc:p.description,active:p.active,featured:p.featured}));
+ render()}
+window.addEventListener('load',loadLive);
 """
 R("\ntry{DB=JSON.parse(localStorage.getItem(LS))}catch(e){}if(!DB||DB.v!==6)DB=seedAll();\nrender();",live+"\nDB=liveDB();\nrender();")
 # hide gift voucher / referral card links that need accounts: referral "Get my code" -> request
@@ -53,5 +72,6 @@ R("""<button class="btn" style="align-self:start" onclick="go('account')">Get my
 R("✓ One payment, ${n} booking credits added instantly<br>✓ Book online — each visit uses one credit<br>✓ Stamp book shows used & remaining<br>","✓ One payment for the whole year<br>✓ Book your visits whenever suits you<br>")
 R("function render(){applyBrand();renderBar();renderSite();","function render(){applyBrand();renderBar();renderSite();[...document.querySelectorAll('h2')].filter(h=>/Install the/.test(h.textContent)).forEach(h=>h.closest('section').remove());[...document.querySelectorAll('.kick')].filter(k=>/Refer a friend/.test(k.textContent)).forEach(k=>{const c=k.closest('.card');const g=c.parentNode;c.remove();g.classList.remove('g2')});")
 R('''${so.facebook?`<a href="https://facebook.com" title="Facebook">f</a>`:''}${so.instagram?`<a href="https://instagram.com" title="Instagram">IG</a>`:''}${so.tiktok?`<a href="https://tiktok.com" title="TikTok">TT</a>`:''}''','''${so.facebook?`<a href="${esc(CFG.facebook)}" title="Facebook">f</a>`:''}${so.instagram?`<a href="${esc(CFG.instagram)}" title="Instagram">IG</a>`:''}${so.tiktok?`<a href="${esc(CFG.tiktok)}" title="TikTok">TT</a>`:''}''')
+s=s.replace('<meta name="theme-color" content="#07080a">','<meta name="theme-color" content="#07080a">\n<script defer src="/config.js"></script>\n<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>',1)
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))
