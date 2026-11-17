@@ -1,0 +1,14 @@
+{
+  "name": "B Clean Valeting",
+  "short_name": "B Clean",
+  "start_url": "/account/",
+  "scope": "/account/",
+  "display": "standalone",
+  "background_color": "#07080a",
+  "theme_color": "#07080a",
+  "icons": [
+    { "src": "/account/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/account/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/account/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

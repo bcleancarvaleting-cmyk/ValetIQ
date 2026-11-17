@@ -5,6 +5,11 @@
       "source": "/admin",
       "destination": "/admin/",
       "permanent": false
+    },
+    {
+      "source": "/account",
+      "destination": "/account/",
+      "permanent": false
     }
   ],
   "headers": [
@@ -36,6 +41,19 @@
         {
           "key": "Service-Worker-Allowed",
           "value": "/admin/"
+        }
+      ]
+    },
+    {
+      "source": "/account/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/account/"
         }
       ]
     }

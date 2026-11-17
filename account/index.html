@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>B Clean Valeting — My account</title>
+<meta name="theme-color" content="#07080a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="B Clean">
+<link rel="manifest" id="mf" href="/account/manifest.webmanifest">
+<link rel="apple-touch-icon" id="ati" href="/account/apple-touch-icon.png">
+<link rel="icon" id="fav" href="/account/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07080a;--p1:#0e1014;--p2:#151820;--p3:#1c2029;--ln:#242935;--tx:#eef1f6;--mu:#8a92a6;--ac:#2f7bff;--ok:#22c55e;--bd:#ef4444;--st:env(safe-area-inset-top);--sb:env(safe-area-inset-bottom)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:Sora,Inter,sans-serif;letter-spacing:-.02em;margin:0 0 .4em}h1{font-size:26px}h2{font-size:21px}h3{font-size:16px}
+p{margin:0 0 .7em}.mu{color:var(--mu)}.tiny{font-size:12.5px}a{color:var(--ac)}
+button{font:inherit;cursor:pointer;color:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--ln);background:var(--p2);color:var(--tx);padding:11px 16px;border-radius:12px;font-weight:600;font-size:14px;text-decoration:none}
+.btn.pri{background:var(--ac);border-color:var(--ac);color:#fff}.btn.block{display:flex;width:100%}.btn.sm{padding:7px 12px;font-size:13px;border-radius:10px}.btn:disabled{opacity:.5}
+input{background:var(--p2);border:1px solid var(--ln);color:var(--tx);border-radius:10px;padding:12px;font:inherit;font-size:16px;width:100%;outline:none}input:focus{border-color:var(--ac)}
+label.f{display:block;font-size:12px;color:var(--mu);margin:12px 0 4px;font-weight:500}
+.card{background:var(--p1);border:1px solid var(--ln);border-radius:18px;padding:16px;margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center}.sp{flex:1}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.top{position:sticky;top:0;z-index:5;background:rgba(7,8,10,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--ln);padding:calc(10px + var(--st)) 16px 10px;display:flex;align-items:center;gap:10px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--ac);display:grid;place-items:center;font-weight:800;color:#fff;font-family:Sora;overflow:hidden;flex:none}.logo img{width:100%;height:100%;object-fit:contain}
+.main{max-width:560px;margin:0 auto;padding:16px 16px calc(40px + var(--sb))}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;background:var(--p3);color:var(--mu)}
+.s-Pending{background:rgba(245,158,11,.15);color:#fcd34d}.s-Booked,.s-Confirmed{background:rgba(47,123,255,.16);color:#8db6ff}.s-Completed{background:rgba(34,197,94,.14);color:#86efac}.s-Cancelled{background:rgba(239,68,68,.13);color:#fca5a5}
+.next{background:linear-gradient(135deg,color-mix(in srgb,var(--ac) 35%,#0e1014),#0e1014 70%);border-color:color-mix(in srgb,var(--ac) 45%,var(--ln))}
+.big{font-family:Sora;font-size:22px;font-weight:700}
+.dots{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 8px}.dots i{width:22px;height:22px;border-radius:50%;background:var(--ac);display:block;box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 20%,transparent)}.dots i.u{background:#fff}.dots i.b{background:transparent;border:2px solid var(--ac);box-shadow:none}
+.stamp{background:linear-gradient(135deg,#1b2440,#0e1014);border:1px solid #2b3550}
+.bk{padding:12px 0;border-top:1px solid var(--ln)}.bk:first-child{border-top:0}
+.toast{position:fixed;left:50%;bottom:calc(24px + var(--sb));transform:translateX(-50%);background:var(--tx);color:#000;padding:10px 16px;border-radius:12px;font-weight:600;z-index:50;max-width:90vw;text-align:center}.toast.err{background:#fecaca}
+.back{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:flex;align-items:flex-end;justify-content:center}.sheet{background:var(--p1);border:1px solid var(--ln);border-radius:22px 22px 0 0;padding:20px 18px calc(22px + var(--sb));width:100%;max-width:560px;max-height:90vh;overflow:auto}
+.step{display:flex;gap:12px;align-items:flex-start;margin:12px 0}.step b.n{width:26px;height:26px;border-radius:50%;background:var(--ac);display:grid;place-items:center;font-size:13px;flex:none;color:#fff}
+.spin{width:28px;height:28px;border:3px solid var(--ln);border-top-color:var(--ac);border-radius:50%;animation:sp .8s linear infinite;margin:40px auto}@keyframes sp{to{transform:rotate(360deg)}}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--p2);border-radius:12px;padding:4px;margin-bottom:6px}.seg button{border:0;background:none;padding:9px;border-radius:9px;color:var(--mu);font-weight:600}.seg button.on{background:var(--tx);color:#000}
+.sw{position:relative;width:46px;height:28px;flex:none}.sw input{opacity:0;width:0;height:0}.sw span{position:absolute;inset:0;background:var(--p3);border-radius:999px;transition:.2s}.sw span:before{content:'';position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}.sw input:checked+span{background:var(--ok)}.sw input:checked+span:before{transform:translateX(18px)}
+</style>
+</head>
+<body>
+<div id="app"><div class="spin"></div></div>
+<script src="/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const V=window.VALETIQ||{};const $=id=>document.getElementById(id);const val=id=>($(id)?$(id).value:'').trim();
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const gbp=n=>{n=+n||0;const s=Math.abs(n)%1?Math.abs(n).toFixed(2):String(Math.abs(n));return(n<0?'-£':'£')+s};
+const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const TODAY=()=>ymd(new Date());
+const fd=d=>new Date(d+'T12:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});const fdy=d=>new Date(d+'T12:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+const hm=t=>String(t||'').slice(0,5);
+function toast(m,err){const e=document.createElement('div');e.className='toast'+(err?' err':'');e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),err?4500:2600)}
+function sheet(html){closeSheet();const b=document.createElement('div');b.className='back';b.id='back';b.onclick=e=>{if(e.target===b)closeSheet()};b.innerHTML=`<div class="sheet">${html}</div>`;document.body.appendChild(b)}
+function closeSheet(){const b=$('back');if(b)b.remove()}
+const errMsg=e=>(e&&(e.message||e.error_description||e.msg))||String(e||'Something went wrong');
+const sb=window.supabase.createClient(V.supabaseUrl,V.supabaseKey,{auth:{storageKey:'bc-customer-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const A={biz:null,user:null,cust:null,bookings:[],subs:[],mode:'signup',recovery:false};
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isAndroid=/android/i.test(navigator.userAgent);
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+let installEvt=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/account/sw.js',{scope:'/account/'}).catch(()=>{});
+
+async function boot(){
+ const{data:biz}=await sb.from('businesses').select('id,name,settings').eq('slug',V.business).single();A.biz=biz||{name:'B Clean',settings:{}};brand();
+ sb.auth.onAuthStateChange((ev,s)=>{if(ev==='PASSWORD_RECOVERY'){A.recovery=true;render()}});
+ const{data:{session}}=await sb.auth.getSession();A.user=session&&session.user;
+ if(A.user)await loadMe();render();
+ const q=new URLSearchParams(location.search);if(q.get('get')&&!standalone())installHelp(q.get('get'));
+}
+function brand(){const st=A.biz.settings||{},br=st.brand||{};if(st.accent)document.documentElement.style.setProperty('--ac',st.accent);
+ if(br.icon180)$('ati').href=br.icon180;if(br.favicon||br.icon192)$('fav').href=br.favicon||br.icon192;
+ if(br.icon192&&br.icon512){const m={name:A.biz.name,short_name:A.biz.name.slice(0,12),start_url:location.origin+'/account/',scope:location.origin+'/account/',display:'standalone',background_color:'#07080a',theme_color:'#07080a',icons:[{src:br.icon192,sizes:'192x192',type:'image/png'},{src:br.icon512,sizes:'512x512',type:'image/png'},...(br.maskable?[{src:br.maskable,sizes:'512x512',type:'image/png',purpose:'maskable'}]:[])]};
+  $('mf').href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}))}
+ document.title=A.biz.name+' — My account'}
+const logo=()=>{const br=(A.biz.settings||{}).brand||{};return`<div class="logo">${br.logo?`<img src="${esc(br.logo)}" alt="">`:esc((A.biz.name.match(/\b\w/g)||['B']).join('').slice(0,2).toUpperCase())}</div>`};
+function topbar(right=''){return`<div class="top">${logo()}<b style="font-family:Sora">${esc(A.biz.name)}</b><span class="sp"></span>${right}</div>`}
+
+async function loadMe(){
+ let{data:c}=await sb.from('customers').select('*').eq('business_id',A.biz.id).eq('user_id',A.user.id).maybeSingle();
+ if(!c){const m=A.user.user_metadata||{};const r=await sb.rpc('register_customer',{p_business:A.biz.id,p_first:m.first_name||null,p_last:m.last_name||null,p_mobile:m.mobile||null});if(r.error){toast(errMsg(r.error),1)}
+  ({data:c}=await sb.from('customers').select('*').eq('business_id',A.biz.id).eq('user_id',A.user.id).maybeSingle())}
+ A.cust=c;if(!c)return;
+ const[b,s]=await Promise.all([sb.from('bookings').select('id,ref,service_name,date,start_time,days,total,status,credit').eq('customer_id',c.id).order('date',{ascending:false}).limit(60),sb.from('plan_subscriptions').select('*').eq('customer_id',c.id).order('end_date')]);
+ A.bookings=b.data||[];A.subs=s.data||[];
+ if(standalone()){try{if(!localStorage.getItem('bc-installed')){await sb.rpc('record_app_install',{p_business:A.biz.id,p_platform:isIOS?'iPhone':isAndroid?'Android':'Desktop'});localStorage.setItem('bc-installed','1')}}catch(e){}}
+}
+
+function render(){const app=$('app');
+ if(A.recovery)return renderNewPw();
+ if(!A.user)return renderAuth();
+ if(!A.cust){app.innerHTML=`${topbar()}<div class="main"><div class="card"><h2>Almost there</h2><p class="mu">We couldn't link your account yet. Please message us and we'll sort it.</p><button class="btn" onclick="signOut()">Sign out</button></div></div>`;return}
+ const c=A.cust,t=TODAY();const up=A.bookings.filter(b=>b.date>=t&&!['Cancelled','Completed'].includes(b.status)).sort((a,b)=>(a.date+a.start_time).localeCompare(b.date+b.start_time));const past=A.bookings.filter(b=>!up.includes(b));const nx=up[0];
+ const subs=A.subs.filter(x=>x.status==='active'&&x.end_date>=t);
+ app.innerHTML=`${topbar(`<button class="btn sm" onclick="settings()">⚙︎</button>`)}<div class="main">
+ <h1>Hi ${esc(c.first_name)} 👋</h1><p class="mu">Your bookings with ${esc(A.biz.name)}.</p>
+ ${nx?`<div class="card next"><div class="tiny mu" style="text-transform:uppercase;letter-spacing:.1em;font-weight:700">Next clean</div><div class="big" style="margin-top:4px">${fd(nx.date)} · ${nx.days>0?'all day':hm(nx.start_time)}</div><div>${esc(nx.service_name)} <span class="pill s-${nx.status}">${nx.status==='Pending'?'Awaiting deposit':nx.status}</span></div><div class="tiny mu" style="margin-top:4px">Ref ${esc(nx.ref)}${nx.credit?' · pre-paid wash':''}</div>
+  <div class="grid2" style="margin-top:12px"><a class="btn sm" href="/cal/${nx.id}">📅 Apple / Outlook</a><a class="btn sm" target="_blank" href="${gcal(nx)}">📅 Google</a></div></div>`:`<div class="card"><b>No upcoming bookings</b><p class="mu tiny" style="margin:4px 0 0">Ready for your next clean?</p></div>`}
+ <a class="btn pri block" style="margin-bottom:12px;padding:14px" href="/?book=1">+ Book a clean</a>
+ ${subs.map(x=>{const used=x.visits-x.credits;return`<div class="card stamp"><div class="row"><div><div class="tiny mu" style="text-transform:uppercase;letter-spacing:.1em;font-weight:700">Pre-paid washes</div><div class="big">${x.credits} left</div></div><span class="sp"></span><div class="tiny mu" style="text-align:right">of ${x.visits}<br>use by ${fdy(x.end_date)}</div></div>
+  <div class="dots">${Array.from({length:Math.min(x.visits,40)},(_,i)=>`<i class="${i<used?'u':''}"></i>`).join('')}</div><div class="tiny mu">White = used · blue = still to use. Choose “Use a pre-paid wash” when you book.</div></div>`}).join('')}
+ ${up.length>1?`<div class="card"><h3>Coming up</h3>${up.slice(1).map(bkRow).join('')}</div>`:''}
+ ${past.length?`<div class="card"><h3>History</h3>${past.slice(0,20).map(bkRow).join('')}</div>`:''}
+ ${!standalone()?`<div class="card"><div class="row"><div style="flex:1"><b>📲 Get the app</b><div class="tiny mu">Add ${esc(A.biz.name)} to your home screen for booking updates and offers.</div></div><button class="btn sm pri" onclick="installHelp()">How</button></div></div>`:''}
+ <p class="tiny mu" style="text-align:center;margin-top:16px">${esc((A.biz.settings||{}).invoice&&(A.biz.settings||{}).invoice.thanks||'Thanks for using '+A.biz.name)}</p></div>`;
+ maybeConsent()}
+function bkRow(b){return`<div class="bk"><div class="row"><b class="tiny">${fd(b.date)} · ${b.days>0?'all day':hm(b.start_time)}</b><span class="sp"></span><span class="pill s-${b.status}">${b.status==='Pending'?'Awaiting deposit':b.status}</span></div><div class="row tiny mu"><span>${esc(b.service_name)} · ${esc(b.ref)}</span><span class="sp"></span><span>${b.credit?'Pre-paid':gbp(b.total)}</span></div></div>`}
+function gcal(b){const s=(b.date+'T'+hm(b.start_time||'08:30')).replace(/[-:]/g,'')+'00';const st=new Date(b.date+'T'+hm(b.start_time||'08:30'));const en=new Date(st.getTime()+(b.days>0?b.days*480:150)*60000);const p=n=>String(n).padStart(2,'0');const e=`${en.getFullYear()}${p(en.getMonth()+1)}${p(en.getDate())}T${p(en.getHours())}${p(en.getMinutes())}00`;
+ return`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(b.service_name+' — '+A.biz.name)}&dates=${s}/${e}&ctz=Europe/London&details=${encodeURIComponent('Booking ref '+b.ref)}`}
+
+/* ---------- sign in / create account ---------- */
+function renderAuth(){const m=A.mode;$('app').innerHTML=`${topbar()}<div class="main"><div style="text-align:center;margin:18px 0 10px"><h1>${m==='signup'?'Create your account':'Welcome back'}</h1><p class="mu">See your bookings, pre-paid washes and offers — and book again in seconds.</p></div>
+ <div class="card"><div class="seg"><button class="${m==='signup'?'on':''}" onclick="A.mode='signup';renderAuth()">Create account</button><button class="${m==='signin'?'on':''}" onclick="A.mode='signin';renderAuth()">Sign in</button></div>
+ ${m==='signup'?`<div class="grid2"><div><label class="f">First name</label><input id="u_f" autocomplete="given-name"></div><div><label class="f">Last name</label><input id="u_l" autocomplete="family-name"></div></div>
+ <label class="f">Mobile</label><input id="u_m" type="tel" autocomplete="tel" placeholder="07…">`:''}
+ <label class="f">Email</label><input id="u_e" type="email" autocomplete="email">
+ <label class="f">Password</label><input id="u_p" type="password" autocomplete="${m==='signup'?'new-password':'current-password'}" placeholder="${m==='signup'?'At least 8 characters':''}">
+ <div id="u_err" class="tiny" style="color:#fca5a5;margin-top:8px"></div>
+ <button class="btn pri block" id="u_go" style="margin-top:12px" onclick="${m==='signup'?'doSignup()':'doSignin()'}">${m==='signup'?'Create account':'Sign in'}</button>
+ ${m==='signin'?`<p class="tiny" style="text-align:center;margin:12px 0 0"><a href="javascript:void 0" onclick="forgot()">Forgotten your password?</a></p>`:`<p class="tiny mu" style="margin:12px 0 0">Already a customer? Use the email or mobile we have for you — your past bookings and any pre-paid washes will appear automatically.</p>`}</div></div>`}
+async function doSignup(){const f=val('u_f'),l=val('u_l'),m=val('u_m'),e=val('u_e').toLowerCase(),p=$('u_p').value;const err=x=>{$('u_err').textContent=x};
+ if(!f)return err('Please add your first name');if(m.replace(/\D/g,'').length<10)return err('Please add your mobile number');if(!/^\S+@\S+\.\S+$/.test(e))return err('Please add a valid email');if(p.length<8)return err('Password must be at least 8 characters');
+ const b=$('u_go');b.disabled=true;b.textContent='Creating…';
+ const{data,error}=await sb.auth.signUp({email:e,password:p,options:{data:{first_name:f,last_name:l,mobile:m},emailRedirectTo:location.origin+'/account/'}});
+ if(error){b.disabled=false;b.textContent='Create account';if(/registered|exists/i.test(error.message)){A.mode='signin';renderAuth();$('u_e').value=e;$('u_err').textContent='You already have an account — sign in below.';return}return err(errMsg(error))}
+ if(!data.session){$('app').innerHTML=`${topbar()}<div class="main"><div class="card" style="text-align:center"><div style="font-size:44px">📧</div><h2>Check your email</h2><p class="mu">We've sent a link to <b>${esc(e)}</b>. Tap it to confirm your account, then sign in.</p><button class="btn block" onclick="A.mode='signin';renderAuth()">Go to sign in</button></div></div>`;return}
+ A.user=data.session.user;await sb.rpc('register_customer',{p_business:A.biz.id,p_first:f,p_last:l,p_mobile:m});await loadMe();render()}
+async function doSignin(){const e=val('u_e').toLowerCase(),p=$('u_p').value;if(!e||!p)return $('u_err').textContent='Enter your email and password';const b=$('u_go');b.disabled=true;b.textContent='Signing in…';
+ const{data,error}=await sb.auth.signInWithPassword({email:e,password:p});if(error){b.disabled=false;b.textContent='Sign in';return $('u_err').textContent=/confirm/i.test(error.message)?'Please confirm your email first — check your inbox.':'Email or password not recognised'}
+ A.user=data.user;await loadMe();render()}
+async function forgot(){const e=val('u_e').toLowerCase();if(!/^\S+@\S+\.\S+$/.test(e))return $('u_err').textContent='Type your email above first';const{error}=await sb.auth.resetPasswordForEmail(e,{redirectTo:location.origin+'/account/'});if(error)return $('u_err').textContent=errMsg(error);toast('Check your email for a reset link')}
+function renderNewPw(){$('app').innerHTML=`${topbar()}<div class="main"><div class="card"><h2>Choose a new password</h2><label class="f">New password</label><input id="np" type="password" autocomplete="new-password"><button class="btn pri block" style="margin-top:12px" onclick="setPw()">Save password</button></div></div>`}
+async function setPw(){const p=$('np').value;if(p.length<8)return toast('At least 8 characters',1);const{data,error}=await sb.auth.updateUser({password:p});if(error)return toast(errMsg(error),1);A.recovery=false;A.user=data.user;toast('Password saved');await loadMe();render()}
+async function signOut(){await sb.auth.signOut();A.user=null;A.cust=null;A.mode='signin';render()}
+
+/* ---------- notifications consent ---------- */
+const pushOK=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+function maybeConsent(){if(!A.cust||A.cust.notify_consent_at)return;try{if(sessionStorage.getItem('bc-asked'))return;sessionStorage.setItem('bc-asked','1')}catch(e){}
+ setTimeout(()=>sheet(`<div style="text-align:center"><div style="font-size:44px">🔔</div><h2>Stay in the loop?</h2><p class="mu">Do you accept to receive booking updates, notifications about your bookings, reminders and offers from ${esc(A.biz.name)}?</p></div>
+ <button class="btn pri block" onclick="consent(true)">Yes, turn on notifications</button><button class="btn block" style="margin-top:8px" onclick="consent(false)">Not now</button>
+ ${isIOS&&!standalone()?'<p class="tiny mu" style="margin-top:10px;text-align:center">On iPhone, notifications work once the app is added to your home screen.</p>':''}`),600)}
+async function consent(ok){closeSheet();await sb.rpc('set_notify_consent',{p_business:A.biz.id,p_ok:ok});A.cust.notify_consent_at=new Date().toISOString();A.cust.notify_ok=ok;
+ if(!ok)return toast('No problem — you can turn them on in settings');if(isIOS&&!standalone())return installHelp('ios');await subscribePush()}
+function b64u(s){const p='='.repeat((4-s.length%4)%4);const r=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(r,c=>c.charCodeAt(0))}
+async function subscribePush(){try{if(!pushOK())return toast('This browser can\'t show notifications',1);const perm=await Notification.requestPermission();if(perm!=='granted')return toast('Notifications are blocked in your phone settings',1);
+ const reg=await navigator.serviceWorker.ready;let s=await reg.pushManager.getSubscription();if(!s)s=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(V.vapidPublicKey)});const j=s.toJSON();
+ const{error}=await sb.from('push_subscriptions').upsert({user_id:A.user.id,business_id:A.biz.id,customer_id:A.cust.id,role:'customer',endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,ua:navigator.userAgent.slice(0,200)},{onConflict:'endpoint'});if(error)throw error;toast('Notifications are on 🎉')}catch(e){toast(errMsg(e),1)}}
+
+/* ---------- install help + settings ---------- */
+function installHelp(which){const ios=which?which==='ios':isIOS;
+ if(!ios&&installEvt){installEvt.prompt();installEvt.userChoice.finally(()=>installEvt=null);return}
+ sheet(`<h2>Add ${esc(A.biz.name)} to your home screen</h2>${ios?`
+ <div class="step"><b class="n">1</b><div>Open this page in <b>Safari</b>.</div></div><div class="step"><b class="n">2</b><div>Tap the <b>Share</b> button <span style="font-size:18px">⬆︎</span> at the bottom of the screen.</div></div><div class="step"><b class="n">3</b><div>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</div></div><div class="step"><b class="n">4</b><div>Open the app from your home screen and sign in — we'll ask about notifications.</div></div>`:`
+ <div class="step"><b class="n">1</b><div>Open this page in <b>Chrome</b>.</div></div><div class="step"><b class="n">2</b><div>Tap the <b>⋮</b> menu (top right).</div></div><div class="step"><b class="n">3</b><div>Tap <b>Install app</b> or <b>Add to Home screen</b>.</div></div><div class="step"><b class="n">4</b><div>Open the app from your home screen and sign in.</div></div>`}
+ <button class="btn block" style="margin-top:8px" onclick="closeSheet()">Got it</button>`)}
+function settings(){const c=A.cust;sheet(`<h2>Settings</h2><div class="row" style="padding:10px 0;border-bottom:1px solid var(--ln)"><div style="flex:1"><b>Notifications</b><div class="tiny mu">Booking updates, reminders and offers</div></div><label class="sw"><input type="checkbox" ${c.notify_ok?'checked':''} onchange="toggleNotif(this.checked)"><span></span></label></div>
+ <div style="padding:10px 0;border-bottom:1px solid var(--ln)"><b>Your details</b><div class="tiny mu">${esc(c.first_name+' '+(c.last_name||''))} · ${esc(c.mobile||'')}<br>${esc(A.user.email)}</div></div>
+ ${!standalone()?`<button class="btn block" style="margin-top:12px" onclick="installHelp()">📲 Add to home screen</button>`:''}
+ <button class="btn block" style="margin-top:8px" onclick="signOut()">Sign out</button>`)}
+async function toggleNotif(on){await sb.rpc('set_notify_consent',{p_business:A.biz.id,p_ok:on});A.cust.notify_ok=on;if(on)await subscribePush();else toast('Notifications off')}
+boot().catch(e=>{$('app').innerHTML=`<div class="main"><div class="card"><b>Couldn't load</b><p class="mu">${esc(errMsg(e))}</p><button class="btn" onclick="location.reload()">Try again</button></div></div>`});
+</script>
+</body>
+</html>
