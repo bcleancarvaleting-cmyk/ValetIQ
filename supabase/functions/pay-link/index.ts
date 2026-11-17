@@ -2,6 +2,13 @@
 // and returns the hosted invoice page URL. Stripe also emails the invoice when the customer has a real email.
 // POST { booking_id }  with the signed-in admin's JWT.
 import { createClient } from "npm:@supabase/supabase-js@2";
+
+let _sc: Record<string, string> | null = null;
+async function stripeCfg(name: string): Promise<string | undefined> {
+  const env = Deno.env.get(name); if (env) return env;
+  if (!_sc || !_sc[name]) { const a = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); const { data } = await a.rpc("get_stripe_config"); _sc = (data || {}) as Record<string, string>; }
+  return _sc[name] || undefined;
+}
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -16,7 +23,7 @@ const realEmail = (e?: string) => !!e && !/@no-email\.invalid$/i.test(e);
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const key = Deno.env.get("STRIPE_SECRET_KEY");
+    const key = await stripeCfg("STRIPE_SECRET_KEY");
     if (!key) return json({ error: "Stripe isn't connected yet — add your Stripe key in Supabase first." }, 400);
     const userDb = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: req.headers.get("Authorization") || "" } } });
     const { booking_id, send } = await req.json();

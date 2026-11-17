@@ -1,13 +1,20 @@
 // Public: Stripe-hosted Checkout for a booking deposit (or full amount) right after the customer books online.
 // POST { booking_id, return_url? }  → { url }
 import { createClient } from "npm:@supabase/supabase-js@2";
+
+let _sc: Record<string, string> | null = null;
+async function stripeCfg(name: string): Promise<string | undefined> {
+  const env = Deno.env.get(name); if (env) return env;
+  if (!_sc || !_sc[name]) { const a = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); const { data } = await a.rpc("get_stripe_config"); _sc = (data || {}) as Record<string, string>; }
+  return _sc[name] || undefined;
+}
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const key = Deno.env.get("STRIPE_SECRET_KEY");
+    const key = await stripeCfg("STRIPE_SECRET_KEY");
     if (!key) return json({ error: "Card payments aren't switched on yet." }, 400);
     const { booking_id, full } = await req.json();
     const { data: b } = await db.from("bookings").select("id,ref,business_id,total,status,service_name,date,start_time,created_at,services(deposit_pct),customers(email),businesses(name,settings)").eq("id", booking_id).single();

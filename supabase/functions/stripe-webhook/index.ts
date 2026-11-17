@@ -1,6 +1,13 @@
 // Stripe webhook: records deposits (Checkout) and balance payments (Invoices / older Payment Links) against the booking.
 // Events: checkout.session.completed, invoice.paid
 import { createClient } from "npm:@supabase/supabase-js@2";
+
+let _sc: Record<string, string> | null = null;
+async function stripeCfg(name: string): Promise<string | undefined> {
+  const env = Deno.env.get(name); if (env) return env;
+  if (!_sc || !_sc[name]) { const a = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); const { data } = await a.rpc("get_stripe_config"); _sc = (data || {}) as Record<string, string>; }
+  return _sc[name] || undefined;
+}
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const enc = new TextEncoder();
 async function verify(payload: string, header: string, secret: string) {
@@ -25,7 +32,7 @@ async function record(bookingId: string, businessId: string, stripeId: string, a
   await db.from("notifications").insert({ business_id: businessId, kind: "newPayment", text: `${label} — £${amount.toFixed(2)} from ${c.first_name || ""} ${c.last_name || ""} (${b.ref})`.replace(/\s+/g, " "), booking_id: bookingId });
 }
 Deno.serve(async (req) => {
-  const secret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+  const secret = await stripeCfg("STRIPE_WEBHOOK_SECRET");
   const payload = await req.text();
   if (!secret || !(await verify(payload, req.headers.get("stripe-signature") || "", secret))) return new Response("Invalid signature", { status: 400 });
   const ev = JSON.parse(payload); const o = ev.data?.object || {};
