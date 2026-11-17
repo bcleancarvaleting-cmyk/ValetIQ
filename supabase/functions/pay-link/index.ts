@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     const userDb = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: req.headers.get("Authorization") || "" } } });
     const { booking_id, send } = await req.json();
     // RLS: only members of the booking's business can read it
-    const { data: b, error } = await userDb.from("bookings").select("id,ref,business_id,total,status,service_name,date,start_time,customer_id,customers(id,email,first_name,last_name,mobile),businesses(name)").eq("id", booking_id).single();
+    const { data: b, error } = await userDb.from("bookings").select("id,ref,business_id,total,status,service_name,date,start_time,customer_id,customers(id,email,first_name,last_name,mobile),businesses(name,settings)").eq("id", booking_id).single();
     if (error || !b) return json({ error: "Booking not found" }, 404);
     if (b.status === "Cancelled") return json({ error: "This booking is cancelled" }, 400);
     const admin = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -38,6 +38,10 @@ Deno.serve(async (req) => {
     if (owed < 30) return json({ error: "Nothing left to pay on this booking" }, 400);
     const c: any = (b as any).customers || {}; const biz: any = (b as any).businesses || {};
     const hasEmail = realEmail(c.email);
+    const I: any = biz.settings?.invoice || {};
+    const thanks = I.thanks || `Thanks for using ${biz.name || "us"}`;
+    const bank = I.sortCode && I.accNo ? `Prefer bank transfer? ${I.accName ? I.accName + " · " : ""}Sort code ${I.sortCode} · Account ${I.accNo} · Reference ${b.ref}` : "";
+    const dueDays = Number(I.dueDays ?? 7);
     // reuse an open invoice / recent card page for the same amount
     const { data: existing } = await admin.from("payment_links").select("*").eq("booking_id", b.id).is("paid_at", null).eq("amount_pence", owed).order("created_at", { ascending: false }).limit(1);
     const ex = existing && existing[0];
@@ -55,7 +59,8 @@ Deno.serve(async (req) => {
         success_url: `${site}/?paid=${encodeURIComponent(b.ref)}`, expires_at: String(Math.floor(Date.now() / 1000) + 23 * 3600),
         "metadata[type]": "balance", "metadata[booking_id]": b.id, "metadata[business_id]": b.business_id, "metadata[ref]": b.ref,
         "payment_intent_data[metadata][booking_id]": b.id, "payment_intent_data[description]": `${biz.name || ""} ${b.ref}`,
-      }, `cs-${b.id}-${owed}-${Math.floor(Date.now() / 3600e3)}`);
+        "custom_text[submit][message]": [bank, thanks].filter(Boolean).join("\n\n").slice(0, 1200),
+      }, `cs2-${b.id}-${owed}-${Math.floor(Date.now() / 3600e3)}`);
       await admin.from("payment_links").insert({ id: s.id, business_id: b.business_id, booking_id: b.id, amount_pence: owed, url: s.url });
       return json({ url: s.url, amount: owed / 100, kind: "card-page" });
     }
@@ -71,10 +76,13 @@ Deno.serve(async (req) => {
     else if (cus.email !== c.email) cus = await stripe("POST", `customers/${cus.id}`, key, { email: c.email });
     const meta = { "metadata[booking_id]": b.id, "metadata[business_id]": b.business_id, "metadata[ref]": b.ref };
     const inv = await stripe("POST", "invoices", key, {
-      customer: cus.id, collection_method: "send_invoice", days_until_due: "7", auto_advance: "false",
-      pending_invoice_items_behavior: "exclude", description: `Thank you for choosing ${biz.name || "us"}.`,
-      "custom_fields[0][name]": "Booking ref", "custom_fields[0][value]": b.ref, ...meta,
-    }, `inv-${b.id}-${owed}-${paid}`);
+      customer: cus.id, collection_method: "send_invoice", days_until_due: String(Math.max(dueDays, 1)), auto_advance: "false",
+      pending_invoice_items_behavior: "exclude",
+      description: `${b.service_name} on ${when} at ${String(b.start_time).slice(0, 5)}. Pay by card using the button, or by bank transfer using the details below.`.slice(0, 1500),
+      footer: [bank ? bank.replace("Prefer bank transfer? ", "Bank transfer: ") : "", thanks].filter(Boolean).join("\n\n").slice(0, 5000),
+      "custom_fields[0][name]": "Booking ref", "custom_fields[0][value]": b.ref,
+      "custom_fields[1][name]": "Service date", "custom_fields[1][value]": `${when.replace(/ \d{4}$/, "")} ${String(b.start_time).slice(0, 5)}`.slice(0, 140), ...meta,
+    }, `inv2-${b.id}-${owed}-${paid}`);
     await stripe("POST", "invoiceitems", key, { customer: cus.id, invoice: inv.id, currency: "gbp", amount: String(Math.round(Number(b.total) * 100)), description: `${b.service_name} — ${when} at ${String(b.start_time).slice(0, 5)}` }, `ii-${inv.id}-svc`);
     if (paid > 0) await stripe("POST", "invoiceitems", key, { customer: cus.id, invoice: inv.id, currency: "gbp", amount: String(-Math.round(paid * 100)), description: "Deposit / payments already received — thank you" }, `ii-${inv.id}-dep`);
     const fin = await stripe("POST", `invoices/${inv.id}/finalize`, key, { auto_advance: "true" });
