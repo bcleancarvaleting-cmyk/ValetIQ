@@ -64,12 +64,21 @@ Deno.serve(async (req) => {
     if (kind === "rebook" || kind === "checkup") btns.push(["Book now", `${site}/?book=1`]);
     const bank = kind === "invoice" && I.sortCode && I.accNo ? `<div style="margin-top:18px;padding:14px 16px;background:#f5f6f8;border-radius:10px;font-size:14px;color:#333"><b>Prefer bank transfer?</b><br>${I.accName ? esc(I.accName) + "<br>" : ""}Sort code <b>${esc(I.sortCode)}</b> · Account <b>${esc(I.accNo)}</b><br>Reference <b>${esc(bk?.ref || "")}</b></div>` : "";
     const details = bk && ["confirmed", "reminder", "invoice", "received"].includes(kind) ? `<table style="width:100%;margin-top:18px;font-size:14px;border-collapse:collapse">${[["Service", bk.service_name], ["Date", when + (bk.days > 0 ? "" : " at " + map.time)], ["Address", [bk.address, bk.postcode].filter(Boolean).join(", ")], ["Ref", bk.ref]].filter((r) => r[1]).map((r) => `<tr><td style="padding:6px 0;color:#777;width:34%">${r[0]}</td><td style="padding:6px 0;font-weight:600;color:#111">${esc(r[1])}</td></tr>`).join("")}</table>` : "";
+    const ch = Number(st.cancelHours ?? 48);
+    let pol = "";
+    if (bk && ["confirmed", "reminder"].includes(kind) && st.cancel) {
+      const startMs = new Date(`${bk.date}T${bk.days > 0 ? "08:30" : String(bk.start_time).slice(0, 5)}:00Z`).getTime();
+      const until = new Date(startMs - ch * 3600e3);
+      const ok = until.getTime() > Date.now();
+      pol = `<div style="margin-top:18px;padding:12px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;color:#555;line-height:1.5"><b style="color:#111">Cancellation policy</b><br>${ok ? `Free to change or cancel until <b>${until.toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}</b>.<br>` : ""}${esc(st.cancel)}</div>`;
+    }
     const html = `<!doctype html><html><body style="margin:0;background:#f2f3f5;font-family:Arial,Helvetica,sans-serif"><div style="max-width:560px;margin:0 auto;padding:24px 14px">
 <div style="background:#0b0d12;border-radius:16px 16px 0 0;padding:22px 26px;text-align:left">${br.logo ? `<img src="${esc(br.logo)}" alt="" style="height:46px;vertical-align:middle;border-radius:8px">` : ""}<span style="color:#fff;font-size:20px;font-weight:700;vertical-align:middle;margin-left:${br.logo ? 10 : 0}px">${esc(biz.name)}</span></div>
 <div style="background:#fff;border-radius:0 0 16px 16px;padding:26px">
 <h1 style="margin:0 0 12px;font-size:22px;color:#111">${esc(subject)}</h1>
 <div style="font-size:15px;line-height:1.6;color:#333;white-space:pre-line">${esc(text)}</div>${details}${bank}
 ${btns.length ? `<div style="margin-top:22px">${btns.map(([t, u], i) => `<a href="${esc(u)}" style="display:inline-block;margin:0 8px 8px 0;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;${i ? `border:2px solid ${ac};color:${ac}` : `background:${ac};color:#fff`}">${esc(t)}</a>`).join("")}</div>` : ""}
+${pol}
 <p style="margin:24px 0 0;font-size:14px;color:#333">${esc(I.thanks || "Thanks for using " + biz.name)}</p></div>
 <p style="text-align:center;font-size:12px;color:#888;margin:14px 0">${esc(biz.name)}${st.phone ? " · " + esc(st.phone) : ""}${st.email ? " · " + esc(st.email) : ""}<br><a href="${site}" style="color:#888">${site.replace(/^https?:\/\//, "")}</a></p></div></body></html>`;
     const from = (ek as any)?.from || `${biz.name} <bookings@${new URL(site).hostname.replace(/^www\./, "")}>`;
