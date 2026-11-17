@@ -20,14 +20,16 @@ Deno.serve(async (req) => {
     if (action === "test") {
       const { data } = await admin.rpc("get_business_stripe", { p_business: business_id });
       if (!data?.secret) return json({ error: "Not connected" }, 400);
-      const acct = await stripe("GET", "account", data.secret);
-      return json({ ok: true, account: acct.settings?.dashboard?.display_name || acct.business_profile?.name || acct.id, charges: acct.charges_enabled });
+      try { const acct = await stripe("GET", "account", data.secret); return json({ ok: true, account: acct.settings?.dashboard?.display_name || acct.business_profile?.name || acct.id, charges: acct.charges_enabled }); }
+      catch (e) { await stripe("GET", "checkout/sessions?limit=1", data.secret); return json({ ok: true, account: "Stripe account", charges: true }); }
     }
     const key = String(secret_key || "").trim();
-    if (!/^(sk|rk)_(live|test)_[A-Za-z0-9]+$/.test(key)) return json({ error: "That doesn't look like a Stripe secret key — it should start sk_live_ or sk_test_." }, 400);
+    if (!/^(sk|rk)_(live|test)_[A-Za-z0-9]+$/.test(key)) return json({ error: "That doesn't look like a Stripe secret key — it should start sk_live_ or rk_live_ (or _test_ for testing)." }, 400);
     const mode = key.includes("_live_") ? "live" : "test";
-    const acct = await stripe("GET", "account", key);  // proves the key works
-    const name = acct.settings?.dashboard?.display_name || acct.business_profile?.name || acct.email || acct.id;
+    // proves the key works. Restricted keys (rk_) may not be allowed to read the account — that's fine.
+    let acct: any = {}; let name = "Stripe account";
+    try { acct = await stripe("GET", "account", key); name = acct.settings?.dashboard?.display_name || acct.business_profile?.name || acct.email || acct.id; }
+    catch (e) { if (!key.startsWith("rk_") || !/permission|restricted/i.test((e as Error).message)) throw e; await stripe("GET", "checkout/sessions?limit=1", key); acct = { charges_enabled: true }; }
     // replace any webhook we created before for this business
     const { data: prev } = await admin.rpc("get_business_stripe", { p_business: business_id });
     if (prev?.webhook_id && prev?.secret) { try { await stripe("DELETE", `webhook_endpoints/${prev.webhook_id}`, prev.secret); } catch (_) { /* already gone */ } }
