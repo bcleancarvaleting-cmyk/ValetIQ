@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     const { data: b } = await db.from("bookings").select("id,ref,business_id,total,status,service_name,date,start_time,created_at,services(deposit_pct),customers(email),businesses(name,settings)").eq("id", booking_id).single();
     if (!b) return json({ error: "Booking not found" }, 404);
     if (b.status !== "Pending") return json({ error: "This booking doesn't need a payment right now." }, 400);
-    if (Date.now() - new Date(b.created_at).getTime() > 2 * 3600e3) return json({ error: "This booking has expired — please book again." }, 400);
+    if (Date.now() - new Date(b.created_at).getTime() > 40 * 60e3) return json({ error: "This booking has expired — please book again." }, 400);
     const st: any = (b as any).businesses?.settings || {};
     const pct = Number((b as any).services?.deposit_pct ?? st.depositPct ?? 20);
     const amount = full ? Number(b.total) : Math.round(Number(b.total) * pct) / 100;
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       "line_items[0][price_data][currency]": "gbp", "line_items[0][price_data][unit_amount]": String(pence),
       "line_items[0][price_data][product_data][name]": `${full ? "Payment" : "Deposit"} — ${b.service_name}`,
       "line_items[0][price_data][product_data][description]": `${when} at ${String(b.start_time).slice(0, 5)} · ref ${b.ref}`,
-      success_url: `${site}/account/?paid=${encodeURIComponent(b.ref)}`, cancel_url: `${site}/?cancelled=${encodeURIComponent(b.ref)}`,
+      success_url: `${site}/?booked=${encodeURIComponent(b.ref)}`, cancel_url: `${site}/?cancelled=${encodeURIComponent(b.ref)}`,
       expires_at: String(Math.floor(Date.now() / 1000) + 1800),
       "metadata[type]": full ? "full" : "deposit", "metadata[booking_id]": b.id, "metadata[business_id]": b.business_id, "metadata[ref]": b.ref,
       "payment_intent_data[metadata][booking_id]": b.id, "payment_intent_data[description]": `${(b as any).businesses?.name || ""} ${b.ref}`,

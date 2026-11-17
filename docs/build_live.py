@@ -28,7 +28,7 @@ function liveDB(){const t=mkTenant('bclean',CFG.name,'Kent',{heroWhite:CFG.heroW
 function save(){}
 function renderBar(){$('demobar').style.display='none'}
 function render(){applyBrand();renderBar();renderSite();document.title=CFG.name+' Valeting — Mobile valeting & detailing in Kent'}
-function go(r){if(r==='book')return requestBooking(BK&&BK.svc,BK&&BK.offer);if(r==='account'){location.href='/account/';return}render();scrollTo(0,0)}
+function go(r){if(r==='book')return liveOn()?liveBook(BK&&BK.svc,BK&&BK.offer):requestBooking(BK&&BK.svc,BK&&BK.offer);if(r==='account'){location.href='/account/';return}render();scrollTo(0,0)}
 function svcMore(id){const t=T(),s=t.services.find(x=>x.id===id);modal(`<div class="kick">${esc(s.cat)} · ${durLabel(s)}</div><h2>${esc(s.name)}</h2><p class="mu">${esc(s.desc)}</p><h4>What's included</h4><ul>${s.inc.map(i=>`<li>${esc(i)}</li>`).join('')}</ul><p><b>${s.poa?'Price on request':'From '+gbp(s.p[0])}</b> <span class="mu tiny">— final price depends on vehicle size and condition; we'll confirm before booking.</span></p><button class="btn pri block" onclick="closeModal();requestBooking('${s.id}')">Request this service</button>`)}
 function requestBooking(svcId,note){const t=T(),S=t.settings;const times=S.slots.filter(x=>x.on).map(x=>x.t);
  modal(`<h2>Request a booking</h2><p class="mu tiny">Send us your details and preferred time — we'll confirm your slot and price on WhatsApp. Online booking with instant confirmation is coming soon.</p>
@@ -45,11 +45,11 @@ function sendRequest(how){const t=T(),S=t.settings;if(!val('rqp')||!val('rqn'))r
 function buyPlan(pid){const t=T(),p=t.plans.find(x=>x.id===pid);const sv=t.services.find(x=>x.id===p.serviceId);requestBooking('plan',`Interested in the ${p.name} (${p.counts.join(' or ')} × ${sv.name}, ${planOff(t,p)}% off).`)}
 function buyVoucher(){const S=T().settings;location.href=`https://wa.me/${intl(S.whatsapp)}?text=${encodeURIComponent('Hi '+S.name+", I'd like to buy a gift voucher.")}`}
 function leaveReview(){const S=T().settings;const u=S.reviewSources.google||S.reviewSources.facebook;if(u)location.href=u;else toast('Thanks! Review links are coming soon.')}
-function takeOffer(id){const o=(T().settings.offers||[]).find(x=>x.id===id);requestBooking(o&&o.serviceId,o?`Offer: ${o.title} — ${o.text}`:null)}
+function takeOffer(id){const o=(T().settings.offers||[]).find(x=>x.id===id);if(liveOn())return liveBook(o&&o.serviceId,o&&o.id);requestBooking(o&&o.serviceId,o?`Offer: ${o.title} — ${o.text}`:null)}
 
 /* ---- load live content from the valetIQ database ---- */
 async function loadLive(){try{if(!window.supabase||!window.VALETIQ)return;const V=window.VALETIQ;const sbc=window.supabase.createClient(V.supabaseUrl,V.supabaseKey,{auth:{persistSession:false,autoRefreshToken:false}});
- const{data:biz,error}=await sbc.from('businesses').select('id,name,settings').eq('slug',V.business).single();if(error||!biz)return;
+ const{data:biz,error}=await sbc.from('businesses').select('id,name,settings').eq('slug',V.business).single();if(error||!biz)return;LIVE={biz,sbc};
  const[sv,pl,sl]=await Promise.all([sbc.from('services').select('*').eq('business_id',biz.id).order('sort'),sbc.from('plans').select('*').eq('business_id',biz.id),sbc.from('time_slots').select('*').eq('business_id',biz.id).order('start_time')]);
  applyLive(biz,sv.data,pl.data,sl.data)}catch(e){console.warn('Live content not loaded',e)}}
 function applyLive(biz,sv,pl,sl){const st=biz.settings||{};const t=T();const S=t.settings;const so=st.social||{};
@@ -63,7 +63,7 @@ function applyLive(biz,sv,pl,sl){const st=biz.settings||{};const t=T();const S=t
  if(sl&&sl.length)S.slots=sl.map(x=>({t:x.start_time.slice(0,5),on:x.enabled}));
  const br=st.brand||{};S.logo=br.logo||null;S.showName=br.showName!==false;if(st.accent)S.accent=st.accent;
  if(br.favicon||br.icon192){const f=document.getElementById('fav');if(f)f.href=br.favicon||br.icon192}if(br.icon180){const a=document.getElementById('ati');if(a)a.href=br.icon180}
- if(sv&&sv.length)t.services=sv.map(s=>{const sm=+s.price_small||0,md=s.price_medium!=null?+s.price_medium:sm,lg=s.price_large!=null?+s.price_large:md;return{id:s.id,cat:s.category,name:s.name,p:[sm,md,lg],mins:s.duration_mins,days:s.days,label:s.day_label,redeem:s.redeemable,active:s.active,desc:s.description,inc:s.includes||[],img:s.image_url||null,poa:s.price_on_request}});
+ if(sv&&sv.length)t.services=sv.map(s=>{const sm=+s.price_small||0,md=s.price_medium!=null?+s.price_medium:sm,lg=s.price_large!=null?+s.price_large:md;return{id:s.id,dep:s.deposit_pct,cat:s.category,name:s.name,p:[sm,md,lg],mins:s.duration_mins,days:s.days,label:s.day_label,redeem:s.redeemable,active:s.active,desc:s.description,inc:s.includes||[],img:s.image_url||null,poa:s.price_on_request}});
  if(pl)t.plans=pl.filter(p=>t.services.some(s=>s.id===p.service_id)).map(p=>({id:p.id,name:p.name,serviceId:p.service_id,eligible:p.eligible||[],counts:p.counts||[12],months:p.months||12,off:p.discount_pct,desc:p.description,active:p.active,featured:p.featured}));
  render()}
 window.addEventListener('load',loadLive);
@@ -93,5 +93,81 @@ R(".obar{",""".astrip{background:linear-gradient(90deg,color-mix(in srgb,var(--a
 @media(max-width:600px){.astrip-in{padding:8px 10px;gap:8px}.astrip-ic{display:none}.astrip-t b{font-size:13px}.astrip-t span{font-size:11.5px}.astrip-b a{padding:6px 9px;font-size:12px}.ostrip-in{flex-wrap:wrap;padding:12px 14px;gap:8px 10px}.ostrip-t{flex-basis:calc(100% - 140px)}.ostrip-b{width:100%}}
 .obar{""")
 R("S.heroSlides=(st.heroSlides||[])","S.appStrip=st.appStrip===true;S.heroSlides=(st.heroSlides||[])")
+
+# ---- Live online booking (date/time, details, Stripe deposit) ----
+R("/* ---- load live content from the valetIQ database ---- */","""/* ---- live online booking ---- */
+let LIVE=null,LB=null;
+function liveOn(){return!!(LIVE&&LIVE.biz.settings&&LIVE.biz.settings.onlineBooking)}
+const lbM=x=>{const[a,b]=String(x).split(':');return +a*60+ +b};
+const lbSvc=()=>T().services.find(x=>x.id===LB.svc);
+function lbPrice(){const s=lbSvc();return s?+s.p[LB.size]||0:0}
+function lbDep(){const s=lbSvc(),st=LIVE.biz.settings;if(!s)return 0;const pct=s.dep!=null?+s.dep:(st.depositPct??20);return Math.round(lbPrice()*pct)/100}
+function liveBook(svcId,offerId){const t=T();const s=t.services.find(x=>x.id===svcId&&x.active&&!x.poa);let saved={};try{saved=JSON.parse(localStorage.getItem('bc-details')||'{}')}catch(e){}
+ LB={step:s?2:1,svc:s?s.id:null,size:+(saved.size||0),date:null,time:null,offer:offerId||null,busy:null,closures:[],blocked:[],d:saved,busyErr:''};renderLB();lbLoad()}
+async function lbLoad(){try{const from=TODAY(),to=addD(from,60),id=LIVE.biz.id;
+ const[b,c,bl]=await Promise.all([LIVE.sbc.rpc('busy_times',{p_business:id,p_from:from,p_to:to}),LIVE.sbc.from('slot_closures').select('date,start_time').eq('business_id',id).gte('date',from),LIVE.sbc.from('blocked_dates').select('from_date,to_date').eq('business_id',id).gte('to_date',from)]);
+ LB.busy=b.data||[];LB.closures=c.data||[];LB.blocked=bl.data||[];}catch(e){LB.busy=[];}if(LB.step===2)renderLB()}
+function lbDayOK(d){const st=LIVE.biz.settings;const dow=new Date(d+'T12:00').getDay();if(Array.isArray(st.workDays)&&!st.workDays.includes(dow))return false;return!LB.blocked.some(x=>d>=x.from_date&&d<=x.to_date)}
+function lbTimes(d){const st=LIVE.biz.settings,s=lbSvc();if(!s||!LB.busy||!lbDayOK(d))return[];const buf=st.buffer??30,notice=(st.minNoticeHours??24)*3600e3;
+ if(s.days>0){for(let i=0;i<s.days;i++){const dd=addD(d,i);if(!lbDayOK(dd))return[];if(LB.busy.some(b=>b.days>0?(dd>=b.date&&dd<=addD(b.date,b.days-1)):b.date===dd))return[]}const hs=(st.hours&&st.hours.start)||'08:30';return new Date(d+'T'+hs)-Date.now()<notice?[]:[hs]}
+ const mins=s.mins||120;return T().settings.slots.filter(x=>x.on).map(x=>x.t).filter(tm=>{if(new Date(d+'T'+tm)-Date.now()<notice)return false;if(LB.closures.some(c=>c.date===d&&c.start_time.slice(0,5)===tm))return false;const st0=lbM(tm),en=st0+mins;
+  return!LB.busy.some(b=>b.days>0?(d>=b.date&&d<=addD(b.date,b.days-1)):(b.date===d&&st0<lbM(b.start_time)+b.duration_mins+buf&&en+buf>lbM(b.start_time)))})}
+function lbSteps(){return`<div class="lbs">${['Service','Date & time','Your details','Confirm'].map((x,i)=>`<span class="${LB.step===i+1?'on':LB.step>i+1?'done':''}">${LB.step>i+1?'✓':i+1+'.'} ${x}</span>`).join('')}</div>`}
+function renderLB(){const t=T(),s=lbSvc(),st=LIVE.biz.settings;let body='';
+ if(LB.step===1){body=`<h2>Choose your service</h2><label class="f">Vehicle size</label><div class="lbz">${SIZES.map((z,i)=>`<button class="${LB.size===i?'on':''}" onclick="LB.size=${i};renderLB()">${z}</button>`).join('')}</div>
+  ${CATS.map(c=>{const L=t.services.filter(x=>x.active&&!x.poa&&x.cat===c);return L.length?`<h4 style="margin:14px 0 6px">${c}</h4><div class="col">${L.map(x=>`<button class="opt ${LB.svc===x.id?'on':''}" onclick="LB.svc='${x.id}';LB.date=null;LB.time=null;LB.step=2;renderLB()"><div class="row"><b>${esc(x.name)}</b><span class="sp"></span><b>${gbp(x.p[LB.size])}</b></div><div class="tiny mu">${durLabel(x)}</div></button>`).join('')}</div>`:''}).join('')}`}
+ else if(LB.step===2){const days=[];for(let i=0;days.length<28&&i<70;i++){const d=addD(TODAY(),i);if(lbDayOK(d))days.push(d)}
+  if(LB.busy&&!LB.date){LB.date=days.find(d=>lbTimes(d).length)||null}
+  const tm=LB.date?lbTimes(LB.date):[];
+  body=`<h2>Pick a date & time</h2><div class="lbsum"><b>${esc(s.name)}</b> · ${SIZES[LB.size]} · ${gbp(lbPrice())} <button class="lnk" onclick="LB.step=1;renderLB()">Change</button></div>
+  ${!LB.busy?'<div class="spin" style="margin:30px auto"></div>':`<div class="lbd">${days.map(d=>{const n=lbTimes(d).length;const dt=new Date(d+'T12:00');return`<button class="${LB.date===d?'on':''} ${n?'':'off'}" ${n?`onclick="LB.date='${d}';LB.time=null;renderLB()"`:'disabled'}><small>${dt.toLocaleDateString('en-GB',{weekday:'short'})}</small><b>${dt.getDate()}</b><small>${dt.toLocaleDateString('en-GB',{month:'short'})}</small></button>`}).join('')}</div>
+  ${LB.date?`<h4 style="margin:14px 0 6px">${fd(LB.date)}</h4>${tm.length?`<div class="lbt">${tm.map(x=>`<button class="${LB.time===x?'on':''}" onclick="LB.time='${x}';renderLB()">${s.days>0?'All day (from '+x+')':x}</button>`).join('')}</div>`:'<p class="mu">No times left on this day.</p>'}`:'<p class="mu" style="margin-top:12px">No availability in the next few weeks — please message us.</p>'}`}
+  <button class="btn pri block" style="margin-top:16px" ${LB.date&&LB.time?'':'disabled'} onclick="LB.step=3;renderLB()">Continue →</button>`}
+ else if(LB.step===3){const d=LB.d;body=`<h2>Your details</h2><div class="lbsum"><b>${esc(s.name)}</b> · ${fd(LB.date)} at ${LB.time} <button class="lnk" onclick="LB.step=2;renderLB()">Change</button></div>
+  <div class="grid g2"><div><label class="f">First name <b>*</b></label><input id="lb_f" value="${esc(d.first||'')}" autocomplete="given-name"></div><div><label class="f">Last name</label><input id="lb_l" value="${esc(d.last||'')}" autocomplete="family-name"></div>
+  <div><label class="f">Mobile <b>*</b></label><input id="lb_m" type="tel" value="${esc(d.mobile||'')}" autocomplete="tel"></div><div><label class="f">Email <b>*</b></label><input id="lb_e" type="email" value="${esc(d.email||'')}" autocomplete="email"></div></div>
+  <label class="f">Address <b>*</b></label><input id="lb_a" value="${esc(d.address||'')}" placeholder="House number & street" autocomplete="street-address">
+  <div class="grid g2"><div><label class="f">Postcode <b>*</b></label><input id="lb_p" value="${esc(d.postcode||'')}" style="text-transform:uppercase" autocomplete="postal-code"></div><div><label class="f">Reg (optional)</label><input id="lb_r" value="${esc(d.reg||'')}" style="text-transform:uppercase"></div></div>
+  <label class="f">Make & model</label><input id="lb_v" value="${esc(d.vehicle||'')}" placeholder="e.g. VW Golf">
+  <label class="f">Anything we should know?</label><textarea id="lb_n" placeholder="Parking, pets, problem areas…"></textarea>
+  <div id="lb_err" class="tiny" style="color:#fca5a5;margin-top:8px"></div>
+  <button class="btn pri block" style="margin-top:14px" onclick="lbDetails()">Continue →</button>`}
+ else if(LB.step===4){const dep=lbDep(),live=!!st.paymentsLive&&dep>0,o=LB.offer&&(st.offers||[]).find(x=>x.id===LB.offer);body=`<h2>Confirm your booking</h2>
+  <div class="card" style="background:var(--p2)"><div class="row"><b>${esc(s.name)}</b><span class="sp"></span><b>${gbp(lbPrice())}</b></div><div class="tiny mu">${SIZES[LB.size]} vehicle · ${durLabel(s)}</div>
+  <div style="margin-top:10px">📅 ${fd(LB.date)} · ${s.days>0?'all day':LB.time}<br>📍 ${esc(LB.d.address)}, ${esc(fmtPC(LB.d.postcode))}<br>👤 ${esc(LB.d.first+' '+(LB.d.last||''))} · ${esc(LB.d.mobile)}</div>
+  ${o?`<div class="notice" style="margin-top:10px">🎉 ${esc(o.title)} — ${esc(o.text)}. Your offer is noted and taken off your final bill.</div>`:''}
+  <div style="border-top:1px solid var(--ln);margin-top:12px;padding-top:10px">${live?`<div class="row"><span>Deposit to pay now</span><span class="sp"></span><b>${gbp(dep)}</b></div><div class="row tiny mu"><span>Balance on the day</span><span class="sp"></span><span>${gbp(lbPrice()-dep)}</span></div>`:`<div class="row"><span>Pay on the day</span><span class="sp"></span><b>${gbp(lbPrice())}</b></div>`}</div></div>
+  <p class="tiny mu" style="margin-top:10px">By booking you agree to our booking terms.${lbS().cancelHours?` Free changes up to ${lbS().cancelHours} hours before.`:''}</p>
+  <div id="lb_err" class="tiny" style="color:#fca5a5;margin-top:6px"></div>
+  <button class="btn pri block" id="lb_go" style="margin-top:12px;padding:14px" onclick="lbSubmit()">${live?`Book & pay ${gbp(dep)} deposit →`:'Confirm booking'}</button>${live?'<p class="tiny mu" style="text-align:center;margin-top:8px">🔒 Secure payment by Stripe · card, Apple Pay & Google Pay</p>':''}`}
+ else if(LB.step===5){const r=LB.res;body=`<div style="text-align:center;padding:10px 0"><div style="font-size:52px">✅</div><h2>You're booked!</h2><p class="mu">Ref <b>${esc(r.ref)}</b> · ${fd(LB.date)} ${s&&s.days>0?'(all day)':'at '+LB.time}</p>
+  <div class="grid g2" style="margin-top:14px"><a class="btn" href="/cal/${r.id}">📅 Apple / Outlook</a><a class="btn" target="_blank" href="${lbGcal()}">📅 Google Calendar</a></div>
+  <p class="tiny mu" style="margin-top:14px">We'll be in touch before your appointment. Questions? WhatsApp ${esc(lbS().whatsapp||lbS().phone||'')}</p><button class="btn pri block" style="margin-top:10px" onclick="closeModal()">Done</button></div>`}
+ modal(`${LB.step<5?lbSteps():''}${body}`,{wide:true})}
+function lbS(){return T().settings}
+function lbGcal(){const s=lbSvc()||{name:'Valet'};const st=(LB.date+'T'+(LB.time||'08:30')).replace(/[-:]/g,'')+'00';const en=new Date(new Date(LB.date+'T'+(LB.time||'08:30')).getTime()+((s.days>0?s.days*480:s.mins)||120)*60000);const pad=n=>String(n).padStart(2,'0');const e=`${en.getFullYear()}${pad(en.getMonth()+1)}${pad(en.getDate())}T${pad(en.getHours())}${pad(en.getMinutes())}00`;
+ return`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(s.name+' — '+lbS().name)}&dates=${st}/${e}&ctz=Europe/London&details=${encodeURIComponent('Booking ref '+(LB.res?LB.res.ref:''))}&location=${encodeURIComponent((LB.d.address||'')+', '+(LB.d.postcode||''))}`}
+function lbDetails(){const g=id=>($(id).value||'').trim();const d={first:g('lb_f'),last:g('lb_l'),mobile:g('lb_m'),email:g('lb_e'),address:g('lb_a'),postcode:g('lb_p'),reg:g('lb_r').toUpperCase(),vehicle:g('lb_v'),notes:g('lb_n'),size:LB.size};
+ const err=m=>{$('lb_err').textContent=m};if(!d.first)return err('Please add your name');if(d.mobile.replace(/\\D/g,'').length<10)return err('Please add a valid mobile number');if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(d.email))return err('Please add a valid email');if(!d.address)return err('Please add your address');
+ const a=areaCheck(T(),d.postcode);if(!a.ok)return err(a.msg);LB.d=d;try{const{notes,...keep}=d;localStorage.setItem('bc-details',JSON.stringify(keep))}catch(e){}LB.step=4;renderLB()}
+async function lbSubmit(){const b=$('lb_go');b.disabled=true;b.textContent='Booking…';const d=LB.d,st=LIVE.biz.settings,o=LB.offer&&(st.offers||[]).find(x=>x.id===LB.offer);const vm=(d.vehicle||'').split(' ');
+ const p={service_id:LB.svc,size:LB.size,date:LB.date,start_time:LB.time,first_name:d.first,last_name:d.last,email:d.email,mobile:d.mobile,address:d.address,postcode:fmtPC(d.postcode),reg:d.reg,make:vm.shift()||'',model:vm.join(' '),notes:[o?`Offer: ${o.title} — ${o.text}`:'',d.notes].filter(Boolean).join('\\n'),pay:'deposit'};
+ const{data,error}=await LIVE.sbc.rpc('create_booking',{p_business:LIVE.biz.id,p});
+ if(error){b.disabled=false;b.textContent='Try again';$('lb_err').textContent=(error.message||'Something went wrong').replace(/^.*?:\\s*/,'');if(/booked|available/i.test(error.message||'')){LB.busy=null;lbLoad()}return}
+ LB.res=data;try{sessionStorage.setItem('bc-pending',JSON.stringify({id:data.id,ref:data.ref,date:LB.date,time:LB.time,svc:LB.svc,d:LB.d}))}catch(e){}
+ if(data.status==='Pending'){b.textContent='Opening secure payment…';const r=await LIVE.sbc.functions.invoke('checkout',{body:{booking_id:data.id}});const url=r.data&&r.data.url;
+  if(url){location.href=url;return}$('lb_err').textContent=(r.data&&r.data.error)||'Payment page could not open — please message us to confirm.';b.disabled=false;b.textContent='Try payment again';b.onclick=()=>lbRepay(data.id);return}
+ LB.step=5;renderLB()}
+async function lbRepay(id){const r=await LIVE.sbc.functions.invoke('checkout',{body:{booking_id:id}});if(r.data&&r.data.url)location.href=r.data.url;else toast((r.data&&r.data.error)||'Please message us to confirm your booking')}
+function lbReturn(){const q=new URLSearchParams(location.search);const ok=q.get('booked'),no=q.get('cancelled');if(!ok&&!no)return;history.replaceState(null,'',location.pathname);let P={};try{P=JSON.parse(sessionStorage.getItem('bc-pending')||'{}')}catch(e){}
+ if(ok){LB={step:5,svc:P.svc,date:P.date,time:P.time,d:P.d||{},res:{id:P.id||'',ref:ok}};if(P.date)return renderLB();modal(`<div style="text-align:center"><div style="font-size:52px">✅</div><h2>Payment received</h2><p class="mu">Your booking <b>${esc(ok)}</b> is confirmed. We'll be in touch before your appointment.</p></div>`)}
+ else modal(`<h2>Payment not finished</h2><p class="mu">Your booking <b>${esc(no)}</b> isn't confirmed until the deposit is paid. We'll hold the slot for about 30 minutes.</p>${P.id?`<button class="btn pri block" onclick="lbRepay('${P.id}')">Pay deposit now</button>`:''}<p class="tiny mu" style="margin-top:10px">Changed your mind? Just close this — the slot will be released.</p>`)}
+/* ---- load live content from the valetIQ database ---- */""")
+R(" render()}\nwindow.addEventListener('load',loadLive);"," render();lbReturn()}\nwindow.addEventListener('load',loadLive);")
+R(".obar{",""".lbs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}.lbs span{font-size:11.5px;padding:4px 9px;border-radius:999px;background:var(--p2);color:var(--mu)}.lbs span.on{background:var(--ac);color:#fff}.lbs span.done{color:var(--tx)}
+.lbz{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.lbz button,.lbt button,.lbd button{border:1px solid var(--ln);background:var(--p2);color:var(--tx);border-radius:12px;padding:10px;font:inherit;cursor:pointer}.lbz button.on,.lbt button.on,.lbd button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.lbd{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;scroll-snap-type:x mandatory}.lbd button{flex:none;width:58px;display:flex;flex-direction:column;align-items:center;gap:1px;scroll-snap-align:start}.lbd button b{font-size:18px}.lbd button small{font-size:11px;opacity:.75}.lbd button.off{opacity:.35;cursor:default}
+.lbt{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}.lbsum{background:var(--p2);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:14px}.lnk{background:none;border:0;color:var(--ac);font:inherit;font-size:13px;cursor:pointer;padding:0 4px;text-decoration:underline}
+.obar{""")
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))
