@@ -87,8 +87,17 @@ Deno.serve(async (req) => {
     await stripe("POST", "invoiceitems", key, { customer: cus.id, invoice: inv.id, currency: "gbp", amount: String(Math.round(Number(b.total) * 100)), description: `${b.service_name} — ${when} at ${String(b.start_time).slice(0, 5)}` }, `ii-${inv.id}-svc`);
     if (paid > 0) await stripe("POST", "invoiceitems", key, { customer: cus.id, invoice: inv.id, currency: "gbp", amount: String(-Math.round(paid * 100)), description: "Deposit / payments already received — thank you" }, `ii-${inv.id}-dep`);
     const fin = await stripe("POST", `invoices/${inv.id}/finalize`, key, { auto_advance: "true" });
-    if (send) { try { await stripe("POST", `invoices/${inv.id}/send`, key, {}); } catch (_) { /* hosted link still works */ } }
+    let emailed = false;
+    if (send) {
+      const { data: ek } = await admin.rpc("get_business_email", { p_business: b.business_id });
+      if ((ek as any)?.key) {
+        const { data: cfg } = await admin.rpc("get_push_config");
+        const r = await fetch(`${URL_}/functions/v1/send-email`, { method: "POST", headers: { "Content-Type": "application/json", "x-push-secret": (cfg as any)?.push_hook || "" }, body: JSON.stringify({ business_id: b.business_id, kind: "invoice", booking_id: b.id, customer_id: c.id, amount: owed / 100, pay_link: fin.hosted_invoice_url, pdf: fin.invoice_pdf }) });
+        emailed = r.ok && !!(await r.json().catch(() => ({})))?.sent;
+      }
+      if (!emailed) { try { await stripe("POST", `invoices/${inv.id}/send`, key, {}); } catch (_) { /* hosted link still works */ } }
+    }
     await admin.from("payment_links").insert({ id: fin.id, business_id: b.business_id, booking_id: b.id, amount_pence: owed, url: fin.hosted_invoice_url });
-    return json({ url: fin.hosted_invoice_url, pdf: fin.invoice_pdf, number: fin.number, amount: owed / 100 });
+    return json({ url: fin.hosted_invoice_url, pdf: fin.invoice_pdf, number: fin.number, amount: owed / 100, emailed });
   } catch (e) { return json({ error: (e as Error).message }, 500); }
 });

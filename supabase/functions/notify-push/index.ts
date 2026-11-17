@@ -5,21 +5,22 @@ import webpush from "npm:web-push@3.6.7";
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
 let cfg: Record<string, string> | null = null;
-const TITLES: Record<string, string> = { registration: "👤 New registration", newBooking: "📅 New booking", newPayment: "💷 Payment received", test: "✅ Notifications are working", referral: "🎁 Referral reward", checkup: "🛡 Coating check-up due", planPurchase: "🎟 Pre-paid plan bought" };
+const TITLES: Record<string, string> = { registration: "👤 New registration", newBooking: "📅 New booking", newPayment: "💷 Payment received", test: "✅ Notifications are working", referral: "🎁 Referral reward", checkup: "🛡 Coating check-up due", planPurchase: "🎟 Pre-paid plan bought", regularClash: "⚠️ Regular slot clash" };
 const DEF: Record<string, { title: string; text: string }> = {
   confirmed: { title: "Booking confirmed", text: "Hi {name}, your {service} with {business} is confirmed for {date} at {time} (ref {ref})." },
   reminder: { title: "See you tomorrow", text: "Hi {name}, just a reminder that we'll be with you {date} at {time} for your {service}." },
   received: { title: "Payment received", text: "Hi {name}, thanks — we've received your payment of {amount} for booking {ref}." },
   review: { title: "How did we do? ⭐", text: "Hi {name}, thanks for choosing {business} today! If you're happy with your {service}, a quick review would mean the world to us." },
   checkup: { title: "Time for your coating check-up 🛡", text: "Hi {name}, your coating is due its check-up. Book a maintenance valet to keep your warranty valid and the protection performing." },
+  rebook: { title: "Time for your next clean? 🚗", text: "Hi {name}, it's been a little while since your last clean with {business}. Want to book your next one?" },
   referral: { title: "You've earned {amount} 🎉", text: "Hi {name}, a friend you referred has just used {business} — {amount} has been added to your account and comes off your next booking." },
 };
 async function customerPush(b: any) {
   const { data: c } = await db.from("customers").select("id,first_name,notify_ok,business_id,businesses(name,settings)").eq("id", b.customer).single();
   if (!c || !c.notify_ok) return { skipped: "no consent" };
   const biz: any = (c as any).businesses || {}; const M = biz.settings?.messages || {};
-  const m = { ...(DEF[b.msg] || {}), ...(M[b.msg] || {}) } as any;
-  if (M[b.msg] && M[b.msg].on === false) return { skipped: "switched off" };
+  const m = { ...(DEF[b.msg] || {}), ...(M[b.msg] || {}), ...(b.text ? { title: b.title || biz.name, text: b.text } : {}) } as any;
+  if (!b.text && M[b.msg] && M[b.msg].on === false) return { skipped: "switched off" };
   if (!m.text) return { skipped: "no text" };
   let bk: any = null;
   if (b.booking) { const r = await db.from("bookings").select("id,ref,service_name,date,start_time,days,total").eq("id", b.booking).single(); bk = r.data; }
@@ -29,10 +30,10 @@ async function customerPush(b: any) {
     time: bk ? (bk.days > 0 ? "all day" : String(bk.start_time).slice(0, 5)) : "",
     amount: "£" + Number(b.amount ?? bk?.total ?? 0).toFixed(2),
   };
-  const text = String(m.text).replace(/\{(\w+)\}/g, (x: string, k: string) => map[k] ?? "").split("\n\n")[0].slice(0, 300);
+  const text = String(m.text).replace(/\{(\w+)\}/g, (x: string, k: string) => map[k] ?? "").split(b.text ? "\u0000" : "\n\n")[0].slice(0, b.text ? 600 : 300);
   const { data: subs } = await db.from("push_subscriptions").select("*").eq("customer_id", c.id);
   const title = String(m.title || biz.name).replace(/\{(\w+)\}/g, (x: string, k: string) => map[k] ?? "");
-  const url = b.msg === "review" && biz.settings?.reviewUrl ? biz.settings.reviewUrl : b.msg === "checkup" ? "/?book=1" : "/account/" + (bk ? `#b=${bk.id}` : "");
+  const url = b.msg === "review" && biz.settings?.reviewUrl ? biz.settings.reviewUrl : (b.msg === "checkup" || b.msg === "rebook") ? "/?book=1" : "/account/" + (bk ? `#b=${bk.id}` : "");
   const payload = JSON.stringify({ title, body: text, url, tag: `${b.msg}-${b.booking || ""}` });
   let sent = 0;
   for (const s of subs || []) {

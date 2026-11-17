@@ -3,6 +3,7 @@
 // POST { business_id, action: "test" } → re-checks the saved key.
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL_ = Deno.env.get("SUPABASE_URL")!;
+const EVENTS: Record<string, string> = { "enabled_events[0]": "checkout.session.completed", "enabled_events[1]": "invoice.paid", "enabled_events[2]": "customer.subscription.deleted" };
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
 async function stripe(method: string, path: string, key: string, params?: Record<string, string>) {
@@ -17,6 +18,12 @@ Deno.serve(async (req) => {
     const { data: member } = await userDb.rpc("is_member", { b: business_id });
     if (!member) return json({ error: "Not allowed" }, 403);
     const admin = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (action === "sync") {
+      const { data } = await admin.rpc("get_business_stripe", { p_business: business_id });
+      if (!data?.secret || !data?.webhook_id) return json({ ok: false, error: "Not connected" });
+      try { await stripe("POST", `webhook_endpoints/${data.webhook_id}`, data.secret, EVENTS); return json({ ok: true }); }
+      catch (e) { return json({ ok: false, error: (e as Error).message }); }
+    }
     if (action === "test") {
       const { data } = await admin.rpc("get_business_stripe", { p_business: business_id });
       if (!data?.secret) return json({ error: "Not connected" }, 400);
@@ -36,7 +43,7 @@ Deno.serve(async (req) => {
     const url = `${URL_}/functions/v1/stripe-webhook?b=${business_id}`;
     const existing = await stripe("GET", "webhook_endpoints?limit=100", key);
     for (const w of existing.data || []) if (w.url === url) { try { await stripe("DELETE", `webhook_endpoints/${w.id}`, key); } catch (_) { /* ignore */ } }
-    const wh = await stripe("POST", "webhook_endpoints", key, { url, "enabled_events[0]": "checkout.session.completed", "enabled_events[1]": "invoice.paid", description: "valetIQ — records deposits and invoice payments" });
+    const wh = await stripe("POST", "webhook_endpoints", key, { url, ...EVENTS, description: "valetIQ — records deposits, invoices and memberships" });
     const { error } = await admin.rpc("save_business_stripe", { p_business: business_id, p_secret: key, p_whsec: wh.secret, p_whid: wh.id, p_mode: mode, p_account: name });
     if (error) throw error;
     return json({ ok: true, mode, account: name, charges: acct.charges_enabled, key: key.slice(0, 8) + "…" + key.slice(-4) });

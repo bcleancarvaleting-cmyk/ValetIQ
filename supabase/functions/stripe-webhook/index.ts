@@ -61,6 +61,43 @@ Deno.serve(async (req) => {
         bookingId = l?.booking_id; businessId = l?.business_id;
       }
       if (bookingId && businessId) await record(bookingId, businessId, o.payment_intent || o.id, (o.amount_total || 0) / 100, o.metadata?.type === "deposit" ? "deposit" : o.metadata?.type === "full" ? "full" : "balance", o.payment_link || o.id);
+    } else if (ev.type === "invoice.paid" && o.amount_paid > 0 && (o.subscription || o.parent?.subscription_details)) {
+      // monthly membership payment → add this month's washes
+      const subId = o.subscription || o.parent?.subscription_details?.subscription;
+      let meta: any = o.parent?.subscription_details?.metadata || o.subscription_details?.metadata || {};
+      if (!meta.membership_id && subId) { const k = (await keysFor(biz)).secret; if (k) { const r = await fetch(`https://api.stripe.com/v1/subscriptions/${subId}`, { headers: { Authorization: `Bearer ${k}` } }); const j = await r.json(); meta = j.metadata || {}; } }
+      if (meta.type === "membership" && meta.membership_id) {
+        const { data: dup } = await db.from("payments").select("id").eq("stripe_id", o.id).limit(1);
+        if (!dup || !dup.length) {
+          const { data: m } = await db.from("memberships").select("*").eq("id", meta.membership_id).single();
+          const n = Number(m?.washes_per_month || 1); const pe = o.lines?.data?.[0]?.period?.end || o.period_end || Math.floor(Date.now() / 1000) + 31 * 86400;
+          const end = new Date((pe + 31 * 86400) * 1000).toISOString().slice(0, 10);
+          const { data: ex } = await db.from("plan_subscriptions").select("*").eq("stripe_sub_id", subId).maybeSingle();
+          let sid = ex?.id;
+          if (ex) await db.from("plan_subscriptions").update({ credits: ex.credits + n, visits: ex.visits + n, end_date: end > ex.end_date ? end : ex.end_date, status: "active", auto_renew: true, amount: Number(ex.amount) + o.amount_paid / 100 }).eq("id", ex.id);
+          else { const { data: ns } = await db.from("plan_subscriptions").insert({ business_id: meta.business_id, customer_id: meta.customer_id, membership_id: m?.id, stripe_sub_id: subId, visits: n, credits: n, amount: o.amount_paid / 100, end_date: end, eligible: m?.eligible || [], auto_renew: true, status: "active", note: `Membership: ${m?.name || ""}` }).select().single(); sid = ns?.id; }
+          if (sid) await db.from("credit_ledger").insert({ business_id: meta.business_id, subscription_id: sid, delta: n, note: "Monthly membership" });
+          await db.from("payments").insert({ business_id: meta.business_id, customer_id: meta.customer_id, subscription_id: sid, type: "membership", amount: o.amount_paid / 100, method: "Stripe (membership)", stripe_id: o.id });
+          await db.from("customers").update({ maintenance_ok: true }).eq("id", meta.customer_id);
+          const { data: c } = await db.from("customers").select("first_name,last_name").eq("id", meta.customer_id).single();
+          await db.from("notifications").insert({ business_id: meta.business_id, kind: "newPayment", text: `Membership ${ex ? "renewed" : "started"} — ${m?.name || ""} £${(o.amount_paid / 100).toFixed(2)} from ${c?.first_name || ""} ${c?.last_name || ""}` });
+        }
+      }
+    } else if (ev.type === "invoice.paid" && o.metadata?.type === "statement" && o.amount_paid > 0) {
+      const { data: dup } = await db.from("payments").select("id").like("stripe_id", `${o.id}:%`).limit(1);
+      if (!dup || !dup.length) {
+        const { data: bks } = await db.from("bookings").select("id,total,customer_id").eq("statement_id", o.id);
+        for (const x of bks || []) {
+          const { data: pays } = await db.from("payments").select("amount").eq("booking_id", x.id);
+          const owed = Number(x.total) - (pays || []).reduce((a: number, p: any) => a + Number(p.amount), 0);
+          if (owed > 0) await db.from("payments").insert({ business_id: o.metadata.business_id, booking_id: x.id, customer_id: x.customer_id, type: "balance", amount: owed, method: "Monthly statement", stripe_id: `${o.id}:${x.id}` });
+        }
+        await db.from("notifications").insert({ business_id: o.metadata.business_id, kind: "newPayment", text: `Monthly statement paid — £${(o.amount_paid / 100).toFixed(2)} (${o.metadata.month})` });
+      }
+    } else if (ev.type === "customer.subscription.deleted") {
+      await db.from("plan_subscriptions").update({ auto_renew: false, note: "Membership cancelled — washes usable until expiry" }).eq("stripe_sub_id", o.id);
+      const meta = o.metadata || {};
+      if (meta.business_id) { const { data: c } = await db.from("customers").select("first_name,last_name").eq("id", meta.customer_id).single(); await db.from("notifications").insert({ business_id: meta.business_id, kind: "newPayment", text: `Membership cancelled — ${c?.first_name || ""} ${c?.last_name || ""}` }); }
     } else if (ev.type === "invoice.paid" && o.metadata?.booking_id && o.amount_paid > 0) {
       await record(o.metadata.booking_id, o.metadata.business_id, o.id, o.amount_paid / 100, "balance", o.id);
     }
