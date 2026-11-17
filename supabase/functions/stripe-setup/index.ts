@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
   try {
     const userDb = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: req.headers.get("Authorization") || "" } } });
     const { business_id, secret_key, action } = await req.json();
-    const { data: member } = await userDb.rpc("is_member", { p_business: business_id });
+    const { data: member } = await userDb.rpc("is_member", { b: business_id });
     if (!member) return json({ error: "Not allowed" }, 403);
     const admin = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     if (action === "test") {
