@@ -61,6 +61,8 @@ function applyLive(biz,sv,pl,sl){const st=biz.settings||{};const t=T();const S=t
  S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.url,caption:''}));
  S.offers=(st.offers||[]).map(o=>({id:o.id,title:o.title||'Offer',text:o.text||'',serviceId:o.serviceId,code:'',expires:o.expires||'',active:!!o.active}));
  if(sl&&sl.length)S.slots=sl.map(x=>({t:x.start_time.slice(0,5),on:x.enabled}));
+ const br=st.brand||{};S.logo=br.logo||null;S.showName=br.showName!==false;if(st.accent)S.accent=st.accent;
+ if(br.favicon||br.icon192){const f=document.getElementById('fav');if(f)f.href=br.favicon||br.icon192}if(br.icon180){const a=document.getElementById('ati');if(a)a.href=br.icon180}
  if(sv&&sv.length)t.services=sv.map(s=>{const sm=+s.price_small||0,md=s.price_medium!=null?+s.price_medium:sm,lg=s.price_large!=null?+s.price_large:md;return{id:s.id,cat:s.category,name:s.name,p:[sm,md,lg],mins:s.duration_mins,days:s.days,label:s.day_label,redeem:s.redeemable,active:s.active,desc:s.description,inc:s.includes||[],img:s.image_url||null,poa:s.price_on_request}});
  if(pl)t.plans=pl.filter(p=>t.services.some(s=>s.id===p.service_id)).map(p=>({id:p.id,name:p.name,serviceId:p.service_id,eligible:p.eligible||[],counts:p.counts||[12],months:p.months||12,off:p.discount_pct,desc:p.description,active:p.active,featured:p.featured}));
  render()}
@@ -73,5 +75,7 @@ R("✓ One payment, ${n} booking credits added instantly<br>✓ Book online — 
 R("function render(){applyBrand();renderBar();renderSite();","function render(){applyBrand();renderBar();renderSite();[...document.querySelectorAll('h2')].filter(h=>/Install the/.test(h.textContent)).forEach(h=>h.closest('section').remove());[...document.querySelectorAll('.kick')].filter(k=>/Refer a friend/.test(k.textContent)).forEach(k=>{const c=k.closest('.card');const g=c.parentNode;c.remove();g.classList.remove('g2')});")
 R('''${so.facebook?`<a href="https://facebook.com" title="Facebook">f</a>`:''}${so.instagram?`<a href="https://instagram.com" title="Instagram">IG</a>`:''}${so.tiktok?`<a href="https://tiktok.com" title="TikTok">TT</a>`:''}''','''${so.facebook?`<a href="${esc(CFG.facebook)}" title="Facebook">f</a>`:''}${so.instagram?`<a href="${esc(CFG.instagram)}" title="Instagram">IG</a>`:''}${so.tiktok?`<a href="${esc(CFG.tiktok)}" title="TikTok">TT</a>`:''}''')
 s=s.replace('<meta name="theme-color" content="#07080a">','<meta name="theme-color" content="#07080a">\n<script defer src="/config.js"></script>\n<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>',1)
+R('<header class="snav"><div class="brand"><div class="badge">${initials(S.name)}</div>${esc(S.name)}</div>','<header class="snav"><div class="brand">${S.logo?`<img src="${esc(S.logo)}" alt="${esc(S.name)}" style="height:44px;width:44px;object-fit:contain;border-radius:10px">`:`<div class="badge">${initials(S.name)}</div>`}${S.showName===false&&S.logo?\'\':esc(S.name)}</div>')
+s=s.replace('<meta name="theme-color" content="#07080a">','<meta name="theme-color" content="#07080a">\n<link rel="icon" id="fav" href="data:,">\n<link rel="apple-touch-icon" id="ati" href="/admin/icon-192.png">',1)
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))

@@ -1,11 +1,49 @@
 {
   "cleanUrls": true,
   "redirects": [
-    { "source": "/admin", "destination": "/admin/", "permanent": false }
+    {
+      "source": "/admin",
+      "destination": "/admin/",
+      "permanent": false
+    }
   ],
   "headers": [
-    { "source": "/prototype/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
-    { "source": "/admin/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
-    { "source": "/admin/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }, { "key": "Service-Worker-Allowed", "value": "/admin/" }] }
+    {
+      "source": "/prototype/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/admin/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/admin/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/admin/"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/cal/:id",
+      "destination": "https://tigznsqtesgofvoflmem.supabase.co/functions/v1/calendar?b=:id"
+    }
   ]
 }

@@ -6,6 +6,8 @@
 <title>B Clean Valeting — Mobile valeting & detailing in Kent</title>
 <meta name="description" content="Premium mobile car valeting and detailing across Kent. Maintenance valets, full valets, deep cleans, paint correction and ceramic coatings — on your drive.">
 <meta name="theme-color" content="#07080a">
+<link rel="icon" id="fav" href="data:,">
+<link rel="apple-touch-icon" id="ati" href="/admin/icon-192.png">
 <script defer src="/config.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -376,7 +378,7 @@ function renderSite(){const t=T(),S=t.settings;const app=$('app');
  const rv=t.reviews.filter(x=>x.approved);const avg=rv.length?(rv.reduce((s,x)=>s+x.stars,0)/rv.length).toFixed(1):'5.0';const done=t.bookings.filter(b=>b.status==='Completed').length;
  const so=S.social;const wa=`https://wa.me/${intl(S.whatsapp)}?text=${encodeURIComponent('Hi '+S.name+', I\'d like to enquire about a valet.')}`;
  app.innerHTML=`<div class="wrap">
- <header class="snav"><div class="brand"><div class="badge">${initials(S.name)}</div>${esc(S.name)}</div><span class="sp"></span>
+ <header class="snav"><div class="brand">${S.logo?`<img src="${esc(S.logo)}" alt="${esc(S.name)}" style="height:44px;width:44px;object-fit:contain;border-radius:10px">`:`<div class="badge">${initials(S.name)}</div>`}${S.showName===false&&S.logo?'':esc(S.name)}</div><span class="sp"></span>
   <div class="soc">${so.whatsapp?`<a href="${wa}" title="WhatsApp">WA</a>`:''}${so.facebook?`<a href="${esc(CFG.facebook)}" title="Facebook">f</a>`:''}${so.instagram?`<a href="${esc(CFG.instagram)}" title="Instagram">IG</a>`:''}${so.tiktok?`<a href="${esc(CFG.tiktok)}" title="TikTok">TT</a>`:''}</div>
   <button class="btn sm" onclick="siteMenu()">Menu</button><button class="btn sm pri" onclick="BK=null;go('book')">Book now</button></header></div>${offerBar(t)}
  <section class="hero" id="hero"><div class="slides">${heroSlides(t).map((h,i)=>`<div class="slide ${i===0?'on':''}" style="background-image:url('${h.img}')"></div>`).join('')}<div class="hcap"><div class="hdots">${heroSlides(t).map((_,i)=>`<button class="${i===0?'on':''}" onclick="heroGo(${i},true)" aria-label="Slide ${i+1}"></button>`).join('')}</div>${heroSlides(t).length>1?`<button class="harr" onclick="heroGo(-1)" aria-label="Previous">‹</button><button class="harr" onclick="heroGo(1)" aria-label="Next">›</button>`:''}</div></div><div class="hin">
@@ -940,6 +942,8 @@ function applyLive(biz,sv,pl,sl){const st=biz.settings||{};const t=T();const S=t
  S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.url,caption:''}));
  S.offers=(st.offers||[]).map(o=>({id:o.id,title:o.title||'Offer',text:o.text||'',serviceId:o.serviceId,code:'',expires:o.expires||'',active:!!o.active}));
  if(sl&&sl.length)S.slots=sl.map(x=>({t:x.start_time.slice(0,5),on:x.enabled}));
+ const br=st.brand||{};S.logo=br.logo||null;S.showName=br.showName!==false;if(st.accent)S.accent=st.accent;
+ if(br.favicon||br.icon192){const f=document.getElementById('fav');if(f)f.href=br.favicon||br.icon192}if(br.icon180){const a=document.getElementById('ati');if(a)a.href=br.icon180}
  if(sv&&sv.length)t.services=sv.map(s=>{const sm=+s.price_small||0,md=s.price_medium!=null?+s.price_medium:sm,lg=s.price_large!=null?+s.price_large:md;return{id:s.id,cat:s.category,name:s.name,p:[sm,md,lg],mins:s.duration_mins,days:s.days,label:s.day_label,redeem:s.redeemable,active:s.active,desc:s.description,inc:s.includes||[],img:s.image_url||null,poa:s.price_on_request}});
  if(pl)t.plans=pl.filter(p=>t.services.some(s=>s.id===p.service_id)).map(p=>({id:p.id,name:p.name,serviceId:p.service_id,eligible:p.eligible||[],counts:p.counts||[12],months:p.months||12,off:p.discount_pct,desc:p.description,active:p.active,featured:p.featured}));
  render()}
