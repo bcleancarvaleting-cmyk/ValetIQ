@@ -963,7 +963,7 @@ function lbUpgs(id){return((LIVE&&LIVE.upgrades)||[]).filter(u=>u.service_id===(
 function lbUpg(){return lbUpgs().find(u=>u.id===LB.upg)||null}
 function offP(s,v){const o=s&&s.offer;if(!o)return v;if(o.fix!=null)return Math.max(0,Math.round((o.fix+v-(+s.p[0]||0))*100)/100);if(o.amt!=null)return Math.max(0,Math.round((v-o.amt)*100)/100);return Math.round(v*(1-o.pct/100)*100)/100}
 function lbPrice(){const s=lbSvc();if(!s)return 0;const u=lbUpg();return lbCars().reduce((a,c)=>a+offP(s,+s.p[c.size??LB.size]||0),0)+(u?+u.price*LB.qty:0)}
-function lbDep(){const s=lbSvc(),st=LIVE.biz.settings;if(!s)return 0;const pct=s.dep!=null?+s.dep:(st.depositPct??20);return Math.round(lbPrice()*pct)/100}
+function lbDep(){const s=lbSvc(),st=LIVE.biz.settings;if(!s)return 0;const pct=s.dep!=null&&+s.dep>0?+s.dep:(+st.depositPct>0?+st.depositPct:20);return Math.round(lbPrice()*pct)/100}
 function liveBook(svcId,offerId){const t=T();const s=t.services.find(x=>x.id===svcId&&x.active&&!x.poa);let saved={};try{saved=JSON.parse(localStorage.getItem('bc-details')||'{}')}catch(e){}
  LB={step:s?(lbUpgs(s.id).length?1.5:2):1,svc:s?s.id:null,size:+(saved.size||0),qty:1,cars:null,upg:null,date:null,time:null,offer:offerId||null,busy:null,closures:[],blocked:[],d:saved,busyErr:''};renderLB();lbLoad()}
 async function lbLoad(){try{const from=TODAY(),to=addD(from,60),id=LIVE.biz.id;
