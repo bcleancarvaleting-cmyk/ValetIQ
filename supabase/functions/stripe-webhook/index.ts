@@ -40,7 +40,21 @@ Deno.serve(async (req) => {
   if (!ok) return new Response("Invalid signature", { status: 400 });
   const ev = JSON.parse(payload); const o = ev.data?.object || {};
   try {
-    if (ev.type === "checkout.session.completed" && o.payment_status === "paid") {
+    if (ev.type === "checkout.session.completed" && o.payment_status === "paid" && o.metadata?.type === "plan") {
+      const m = o.metadata; const sid = o.payment_intent || o.id;
+      const { data: dup } = await db.from("payments").select("id").eq("stripe_id", sid).limit(1);
+      if (!dup || !dup.length) {
+        const { data: p } = await db.from("plans").select("*").eq("id", m.plan_id).single();
+        const n = Number(m.count); const end = new Date(); end.setMonth(end.getMonth() + Number(p?.months || 12));
+        const { data: sub } = await db.from("plan_subscriptions").insert({ business_id: m.business_id, customer_id: m.customer_id, plan_id: m.plan_id, visits: n, credits: n, size: Number(m.size) || 0,
+          amount: (o.amount_total || 0) / 100, end_date: end.toISOString().slice(0, 10), eligible: p?.eligible?.length ? p.eligible : (p?.service_id ? [p.service_id] : []), auto_renew: false, status: "active", note: "Bought online" }).select().single();
+        await db.from("payments").insert({ business_id: m.business_id, customer_id: m.customer_id, subscription_id: sub?.id, type: "membership", amount: (o.amount_total || 0) / 100, method: "Card (Stripe)", stripe_id: sid });
+        if (sub) await db.from("credit_ledger").insert({ business_id: m.business_id, subscription_id: sub.id, delta: n, note: "Bought online" });
+        await db.from("customers").update({ maintenance_ok: true }).eq("id", m.customer_id);
+        const { data: c } = await db.from("customers").select("first_name,last_name").eq("id", m.customer_id).single();
+        await db.from("notifications").insert({ business_id: m.business_id, kind: "newPayment", text: `Pre-paid plan bought — ${p?.name || "plan"} (${n} washes, £${((o.amount_total || 0) / 100).toFixed(2)}) by ${c?.first_name || ""} ${c?.last_name || ""}` });
+      }
+    } else if (ev.type === "checkout.session.completed" && o.payment_status === "paid") {
       let bookingId = o.metadata?.booking_id; let businessId = o.metadata?.business_id;
       if ((!bookingId || !businessId) && o.payment_link) {
         const { data: l } = await db.from("payment_links").select("booking_id,business_id").eq("id", o.payment_link).single();

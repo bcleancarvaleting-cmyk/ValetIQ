@@ -5,11 +5,14 @@ import webpush from "npm:web-push@3.6.7";
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
 let cfg: Record<string, string> | null = null;
-const TITLES: Record<string, string> = { registration: "👤 New registration", newBooking: "📅 New booking", newPayment: "💷 Payment received", test: "✅ Notifications are working" };
+const TITLES: Record<string, string> = { registration: "👤 New registration", newBooking: "📅 New booking", newPayment: "💷 Payment received", test: "✅ Notifications are working", referral: "🎁 Referral reward", checkup: "🛡 Coating check-up due", planPurchase: "🎟 Pre-paid plan bought" };
 const DEF: Record<string, { title: string; text: string }> = {
   confirmed: { title: "Booking confirmed", text: "Hi {name}, your {service} with {business} is confirmed for {date} at {time} (ref {ref})." },
   reminder: { title: "See you tomorrow", text: "Hi {name}, just a reminder that we'll be with you {date} at {time} for your {service}." },
   received: { title: "Payment received", text: "Hi {name}, thanks — we've received your payment of {amount} for booking {ref}." },
+  review: { title: "How did we do? ⭐", text: "Hi {name}, thanks for choosing {business} today! If you're happy with your {service}, a quick review would mean the world to us." },
+  checkup: { title: "Time for your coating check-up 🛡", text: "Hi {name}, your coating is due its check-up. Book a maintenance valet to keep your warranty valid and the protection performing." },
+  referral: { title: "You've earned {amount} 🎉", text: "Hi {name}, a friend you referred has just used {business} — {amount} has been added to your account and comes off your next booking." },
 };
 async function customerPush(b: any) {
   const { data: c } = await db.from("customers").select("id,first_name,notify_ok,business_id,businesses(name,settings)").eq("id", b.customer).single();
@@ -28,7 +31,9 @@ async function customerPush(b: any) {
   };
   const text = String(m.text).replace(/\{(\w+)\}/g, (x: string, k: string) => map[k] ?? "").split("\n\n")[0].slice(0, 300);
   const { data: subs } = await db.from("push_subscriptions").select("*").eq("customer_id", c.id);
-  const payload = JSON.stringify({ title: m.title || biz.name, body: text, url: "/account/" + (bk ? `#b=${bk.id}` : ""), tag: `${b.msg}-${b.booking || ""}` });
+  const title = String(m.title || biz.name).replace(/\{(\w+)\}/g, (x: string, k: string) => map[k] ?? "");
+  const url = b.msg === "review" && biz.settings?.reviewUrl ? biz.settings.reviewUrl : b.msg === "checkup" ? "/?book=1" : "/account/" + (bk ? `#b=${bk.id}` : "");
+  const payload = JSON.stringify({ title, body: text, url, tag: `${b.msg}-${b.booking || ""}` });
   let sent = 0;
   for (const s of subs || []) {
     try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 86400 }); sent++; }
