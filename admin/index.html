@@ -213,9 +213,9 @@ function sendMsg(key,b,extra){const c=b.customers||{};const txt=fillMsg(key,b,ex
 function msgGo(how){const c=S._msgc||{};const t=val('msgt');if(how==='wa')location.href='https://wa.me/'+intl(c.mobile)+'?text='+encodeURIComponent(t);if(how==='sms')location.href='sms:'+(c.mobile||'').replace(/\s/g,'')+'&body='+encodeURIComponent(t);if(how==='email')location.href='mailto:'+c.email+'?subject='+encodeURIComponent((S._msgt||'Message')+' — '+S.biz.name)+'&body='+encodeURIComponent(t)}
 async function copyMsg(){try{await navigator.clipboard.writeText(val('msgt'));toast('Copied')}catch(e){$('msgt').select();toast('Select and copy')}}
 async function msgFor(id,key){const{data:b}=await sb.from('bookings').select('*, customers(*)').eq('id',id).single();if(key==='invoice')return payLink(id);sendMsg(key,b)}
-async function payLink(id){const done=busy('Creating payment link…');const{data,error}=await sb.functions.invoke('pay-link',{body:{booking_id:id}});done();
+async function payLink(id){const done=busy('Creating Stripe invoice…');const{data,error}=await sb.functions.invoke('pay-link',{body:{booking_id:id,send:true}});done();
  let msg=error?errMsg(error):data&&data.error;if(error&&error.context&&error.context.json){try{const j=await error.context.json();msg=j.error||msg}catch(e){}}
- if(msg||!data||!data.url)return toast(msg||'Could not create link',1);const{data:b}=await sb.from('bookings').select('*, customers(*)').eq('id',id).single();sendMsg('invoice',b,{pay_link:data.url,amount:data.amount})}
+ if(msg||!data||!data.url)return toast(msg||'Could not create invoice',1);const{data:b}=await sb.from('bookings').select('*, customers(*)').eq('id',id).single();sendMsg('invoice',b,{pay_link:data.url,amount:data.amount})}
 
 /* ================= BOOKING DETAIL ================= */
 async function openBooking(id){sheet('<div class="spin"></div>');
