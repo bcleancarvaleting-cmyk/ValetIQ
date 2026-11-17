@@ -1,20 +1,18 @@
 -- Online bookings only reach the diary (and alert the owner) once the deposit is paid.
--- 1) A 0% deposit on a service no longer lets online bookings skip payment: the standard deposit applies online.
+-- 0% deposit services (e.g. maintenance for trusted clients) still book straight in for £0.
 -- 2) "New booking" alert is sent when the booking is paid (Pending → Booked), not when the slot is first held.
 do $do$
 declare d text;
 begin
   select pg_get_functiondef('public.create_booking(uuid,jsonb)'::regprocedure) into d;
-  if position('nullif(svc.deposit_pct, 0)' in d) > 0 then return; end if;
-  d := replace(d, 'coalesce(svc.deposit_pct, (biz.settings->>''depositPct'')::numeric, 20)',
-                  'coalesce(case when v_admin then svc.deposit_pct else nullif(svc.deposit_pct, 0) end, nullif((biz.settings->>''depositPct'')::numeric, 0), 20)');
+  -- undo the earlier 0%-deposit override if it was applied
+  d := replace(d, 'coalesce(case when v_admin then svc.deposit_pct else nullif(svc.deposit_pct, 0) end, nullif((biz.settings->>''depositPct'')::numeric, 0), 20)',
+                  'coalesce(svc.deposit_pct, (biz.settings->>''depositPct'')::numeric, 20)');
   d := replace(d, '  if not v_admin then
   insert into public.notifications (business_id, kind, text, booking_id)',
                   '  if not v_admin and (select status from public.bookings where id = v_id) <> ''Pending'' then
   insert into public.notifications (business_id, kind, text, booking_id)');
-  if position('nullif(svc.deposit_pct, 0)' in d) = 0 or position('<> ''Pending'' then' in d) = 0 then
-    raise exception 'create_booking patch did not apply cleanly';
-  end if;
+  if position('<> ''Pending'' then' in d) = 0 or position('nullif(svc.deposit_pct, 0)' in d) > 0 then raise exception 'create_booking patch did not apply cleanly'; end if;
   execute d;
 end $do$;
 
