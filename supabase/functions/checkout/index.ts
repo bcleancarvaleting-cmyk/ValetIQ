@@ -2,11 +2,12 @@
 // POST { booking_id, return_url? }  → { url }
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-let _sc: Record<string, string> | null = null;
-async function stripeCfg(name: string): Promise<string | undefined> {
-  const env = Deno.env.get(name); if (env) return env;
-  if (!_sc || !_sc[name]) { const a = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); const { data } = await a.rpc("get_stripe_config"); _sc = (data || {}) as Record<string, string>; }
-  return _sc[name] || undefined;
+// Stripe keys: entered per business in the admin app (Settings → Payments); falls back to the platform Vault keys
+async function keysFor(biz?: string): Promise<{ secret?: string; whsec?: string }> {
+  const a = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  if (biz) { const { data } = await a.rpc("get_business_stripe", { p_business: biz }); if (data && (data as any).secret) return { secret: (data as any).secret, whsec: (data as any).whsec }; }
+  const { data: v } = await a.rpc("get_stripe_config"); const g: any = v || {};
+  return { secret: Deno.env.get("STRIPE_SECRET_KEY") || g.STRIPE_SECRET_KEY, whsec: Deno.env.get("STRIPE_WEBHOOK_SECRET") || g.STRIPE_WEBHOOK_SECRET };
 }
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -14,11 +15,11 @@ const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SE
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const key = await stripeCfg("STRIPE_SECRET_KEY");
-    if (!key) return json({ error: "Card payments aren't switched on yet." }, 400);
     const { booking_id, full } = await req.json();
     const { data: b } = await db.from("bookings").select("id,ref,business_id,total,status,service_name,date,start_time,created_at,services(deposit_pct),customers(email),businesses(name,settings)").eq("id", booking_id).single();
     if (!b) return json({ error: "Booking not found" }, 404);
+    const key = (await keysFor(b.business_id)).secret;
+    if (!key) return json({ error: "Card payments aren't switched on yet." }, 400);
     if (b.status !== "Pending") return json({ error: "This booking doesn't need a payment right now." }, 400);
     if (Date.now() - new Date(b.created_at).getTime() > 40 * 60e3) return json({ error: "This booking has expired — please book again." }, 400);
     const st: any = (b as any).businesses?.settings || {};

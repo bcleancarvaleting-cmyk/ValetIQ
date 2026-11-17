@@ -3,11 +3,12 @@
 // POST { booking_id }  with the signed-in admin's JWT.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-let _sc: Record<string, string> | null = null;
-async function stripeCfg(name: string): Promise<string | undefined> {
-  const env = Deno.env.get(name); if (env) return env;
-  if (!_sc || !_sc[name]) { const a = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); const { data } = await a.rpc("get_stripe_config"); _sc = (data || {}) as Record<string, string>; }
-  return _sc[name] || undefined;
+// Stripe keys: entered per business in the admin app (Settings → Payments); falls back to the platform Vault keys
+async function keysFor(biz?: string): Promise<{ secret?: string; whsec?: string }> {
+  const a = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  if (biz) { const { data } = await a.rpc("get_business_stripe", { p_business: biz }); if (data && (data as any).secret) return { secret: (data as any).secret, whsec: (data as any).whsec }; }
+  const { data: v } = await a.rpc("get_stripe_config"); const g: any = v || {};
+  return { secret: Deno.env.get("STRIPE_SECRET_KEY") || g.STRIPE_SECRET_KEY, whsec: Deno.env.get("STRIPE_WEBHOOK_SECRET") || g.STRIPE_WEBHOOK_SECRET };
 }
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -23,14 +24,14 @@ const realEmail = (e?: string) => !!e && !/@no-email\.invalid$/i.test(e);
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const key = await stripeCfg("STRIPE_SECRET_KEY");
-    if (!key) return json({ error: "Stripe isn't connected yet — add your Stripe key in Supabase first." }, 400);
     const userDb = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: req.headers.get("Authorization") || "" } } });
     const { booking_id, send } = await req.json();
     // RLS: only members of the booking's business can read it
     const { data: b, error } = await userDb.from("bookings").select("id,ref,business_id,total,status,service_name,date,start_time,customer_id,customers(id,email,first_name,last_name,mobile),businesses(name,settings)").eq("id", booking_id).single();
     if (error || !b) return json({ error: "Booking not found" }, 404);
     if (b.status === "Cancelled") return json({ error: "This booking is cancelled" }, 400);
+    const key = (await keysFor(b.business_id)).secret;
+    if (!key) return json({ error: "Card payments aren't connected yet — add your Stripe key in Settings → Payments." }, 400);
     const admin = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: pays } = await admin.from("payments").select("amount").eq("booking_id", b.id);
     const paid = (pays || []).reduce((s: number, p: any) => s + Number(p.amount), 0);

@@ -2,11 +2,12 @@
 // Events: checkout.session.completed, invoice.paid
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-let _sc: Record<string, string> | null = null;
-async function stripeCfg(name: string): Promise<string | undefined> {
-  const env = Deno.env.get(name); if (env) return env;
-  if (!_sc || !_sc[name]) { const a = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); const { data } = await a.rpc("get_stripe_config"); _sc = (data || {}) as Record<string, string>; }
-  return _sc[name] || undefined;
+// Stripe keys: entered per business in the admin app (Settings → Payments); falls back to the platform Vault keys
+async function keysFor(biz?: string): Promise<{ secret?: string; whsec?: string }> {
+  const a = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  if (biz) { const { data } = await a.rpc("get_business_stripe", { p_business: biz }); if (data && (data as any).secret) return { secret: (data as any).secret, whsec: (data as any).whsec }; }
+  const { data: v } = await a.rpc("get_stripe_config"); const g: any = v || {};
+  return { secret: Deno.env.get("STRIPE_SECRET_KEY") || g.STRIPE_SECRET_KEY, whsec: Deno.env.get("STRIPE_WEBHOOK_SECRET") || g.STRIPE_WEBHOOK_SECRET };
 }
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const enc = new TextEncoder();
@@ -32,9 +33,11 @@ async function record(bookingId: string, businessId: string, stripeId: string, a
   await db.from("notifications").insert({ business_id: businessId, kind: "newPayment", text: `${label} — £${amount.toFixed(2)} from ${c.first_name || ""} ${c.last_name || ""} (${b.ref})`.replace(/\s+/g, " "), booking_id: bookingId });
 }
 Deno.serve(async (req) => {
-  const secret = await stripeCfg("STRIPE_WEBHOOK_SECRET");
-  const payload = await req.text();
-  if (!secret || !(await verify(payload, req.headers.get("stripe-signature") || "", secret))) return new Response("Invalid signature", { status: 400 });
+  const biz = new URL(req.url).searchParams.get("b") || undefined;
+  const payload = await req.text(); const sig = req.headers.get("stripe-signature") || "";
+  const k1 = await keysFor(biz); let ok = !!k1.whsec && await verify(payload, sig, k1.whsec!);
+  if (!ok && biz) { const k2 = await keysFor(undefined); ok = !!k2.whsec && await verify(payload, sig, k2.whsec!); }
+  if (!ok) return new Response("Invalid signature", { status: 400 });
   const ev = JSON.parse(payload); const o = ev.data?.object || {};
   try {
     if (ev.type === "checkout.session.completed" && o.payment_status === "paid") {
