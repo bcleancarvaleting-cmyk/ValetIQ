@@ -45,6 +45,11 @@ R("function lbReturn(){const q=new URLSearchParams(location.search);",
 "function lbReturn(){const q=new URLSearchParams(location.search);if(q.get('cert')){const c=q.get('cert');history.replaceState(null,'',location.pathname);showCert(c);return}if(q.get('fleet')){history.replaceState(null,'',location.pathname);setTimeout(fleetForm,300);return}if(q.get('areas')){history.replaceState(null,'',location.pathname);setTimeout(()=>{const e=$('s-cover');if(e)e.scrollIntoView({behavior:'smooth'})},600);return}")
 
 NEWJS=r'''
+/* ===== abandoned booking tracking ===== */
+function lbAttSid(){let v='';try{v=sessionStorage.getItem('bc-att');if(!v){v=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('bc-att',v)}}catch(e){v='x'+Date.now()}return v}
+function lbAtt(step,x){try{if(!LIVE||!LIVE.sbc)return;const g=id=>($(id)?$(id).value||'':'').trim();const d=LB.d||{},sv=T().services.find(s=>s.id===LB.svc)||{};let src='';try{src=sessionStorage.getItem('bc-src')||''}catch(e){}
+ const p={step,first:g('lb_f')||d.first||'',last:g('lb_l')||d.last||'',mobile:g('lb_m')||d.mobile||'',email:g('lb_e')||d.email||'',postcode:g('lb_p')||d.postcode||'',service_id:LB.svc||'',service:sv.name||'',date:LB.date||'',time:LB.time||'',source:src,...(x||{})};
+ LIVE.sbc.rpc('track_booking_attempt',{p_business:LIVE.biz.id,p_session:lbAttSid(),p}).then(()=>{},()=>{})}catch(e){}}
 /* ===== top review bar ===== */
 function topRvBar(S){const t=(S.reviewBar||'').trim();if(!t)return'';return`<button class="rvbar" onclick="const e=document.querySelector('.rvm');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})" aria-label="Read our reviews"><span class="st">★★★★★</span><span>${esc(t)}</span><span class="sb" style="background:#4285F4">G</span><span class="sb" style="background:#1877F2">f</span></button>`}
 /* ===== next free slot ===== */
@@ -132,3 +137,12 @@ R("""${chips}<span class="sp"></span>${links}</div>""","""${chips}<span class="s
 R("""${chips}<span class="sp"></span>${S.gReview?`<a class="btn xs pri" href="${esc(S.gReview)}" target="_blank" rel="noopener">⭐ Leave us a Google review</a>`:links}</div>""",
   """<div class="rvact">${chips}${S.gReview?`<a class="btn xs pri" href="${esc(S.gReview)}" target="_blank" rel="noopener">⭐ Leave a Google review</a>`:links}</div></div>""")
 R(".rvsum{display:flex;align-items:center;gap:10px;flex-wrap:wrap}",".rvsum{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.rvact{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin-left:auto}.rvact>*{white-space:nowrap}@media(max-width:600px){.rvact{margin-left:0;width:100%}.rvact .rvchip{font-size:11.5px;padding:6px 9px}.rvact .btn{font-size:12px;padding:7px 11px}}")
+
+# ---- abandoned bookings: save progress + contact details as they go
+R("sessionStorage.setItem('bc-trk','1')","sessionStorage.setItem('bc-trk','1');sessionStorage.setItem('bc-src',src)")
+R("else src=h;","else if(/stripe\\.com$/.test(h))src='Stripe payment page';else src=h;")
+R('<input id="lb_m" type="tel" value="${esc(d.mobile||\'\')}" autocomplete="tel">','<input id="lb_m" type="tel" value="${esc(d.mobile||\'\')}" autocomplete="tel" onchange="lbAtt(3)">')
+R('<input id="lb_e" type="email" value="${esc(d.email||\'\')}" autocomplete="email"></div></div>','<input id="lb_e" type="email" value="${esc(d.email||\'\')}" autocomplete="email" onchange="lbAtt(3)"></div></div><div class="tiny mu" style="margin-top:4px">We save your details as you go so we can help if you get stuck.</div>')
+R("LB.step=4;renderLB()}","LB.step=4;lbAtt(4);renderLB()}")
+R('onclick="LB.step=3;renderLB()"','onclick="lbAtt(2);LB.step=3;renderLB()"')
+R("LB.res=data;try{sessionStorage.setItem('bc-pending'","LB.res=data;lbAtt(5,{booking_id:data.id});try{sessionStorage.removeItem('bc-att')}catch(e){}try{sessionStorage.setItem('bc-pending'")
