@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /account/
+Disallow: /prototype/
+
+Sitemap: https://bcleanvaleting.co.uk/sitemap.xml

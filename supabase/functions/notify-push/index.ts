@@ -5,7 +5,7 @@ import webpush from "npm:web-push@3.6.7";
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
 let cfg: Record<string, string> | null = null;
-const TITLES: Record<string, string> = { registration: "👤 New registration", newBooking: "📅 New booking", newPayment: "💷 Payment received", test: "✅ Notifications are working", referral: "🎁 Referral reward", checkup: "🛡 Coating check-up due", planPurchase: "🎟 Pre-paid plan bought", regularClash: "⚠️ Regular slot clash" };
+const TITLES: Record<string, string> = { registration: "👤 New registration", newBooking: "📅 New booking", newPayment: "💷 Payment received", test: "✅ Notifications are working", referral: "🎁 Referral reward", checkup: "🛡 Coating check-up due", planPurchase: "🎟 Pre-paid plan bought", regularClash: "⚠️ Regular slot clash", fleetEnquiry: "🏢 New business / fleet enquiry" };
 const DEF: Record<string, { title: string; text: string }> = {
   confirmed: { title: "Booking confirmed", text: "Hi {name}, your {service} with {business} is confirmed for {date} at {time} (ref {ref})." },
   reminder: { title: "See you tomorrow", text: "Hi {name}, just a reminder that we'll be with you {date} at {time} for your {service}." },

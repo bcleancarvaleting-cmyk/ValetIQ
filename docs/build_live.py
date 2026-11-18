@@ -343,5 +343,6 @@ R("v.addEventListener('playing',()=>{v._ok=1;","v.addEventListener('canplay',()=
 R("['touchstart','scroll','click','keydown'].forEach(ev=>addEventListener(ev,()=>heroVid(),{passive:true,once:true}))",
 "const kick=()=>{const vs=[...document.querySelectorAll('#hero video')];if(vs.length&&vs.some(v=>!v.paused))return;heroVid()};['touchstart','touchend','pointerup','click','keydown','scroll','wheel'].forEach(ev=>addEventListener(ev,kick,{passive:true,capture:true}));setInterval(()=>{if(!document.hidden)kick()},2000)")
 R('src="${h.video}" muted','src="${h.video}#t=0.1" muted')
+exec(open('/home/claude/site_patch2.py').read())
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))
