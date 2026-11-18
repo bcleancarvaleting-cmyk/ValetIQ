@@ -120,6 +120,14 @@
   ],
   "rewrites": [
     {
+      "source": "/book-now",
+      "destination": "/"
+    },
+    {
+      "source": "/booking",
+      "destination": "/"
+    },
+    {
       "source": "/cal/:id",
       "destination": "https://tigznsqtesgofvoflmem.supabase.co/functions/v1/calendar?b=:id"
     }

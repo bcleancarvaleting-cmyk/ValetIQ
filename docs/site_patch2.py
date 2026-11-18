@@ -112,3 +112,6 @@ R('<meta charset="utf-8">','<meta charset="utf-8"><meta name="google-site-verifi
 # /book/<service-slug> opens booking with that service picked
 R("if(q.get('book')&&liveOn()){history.replaceState(null,'',location.pathname);return liveBook(null)}",
   "if(q.get('book')&&liveOn()){history.replaceState(null,'',location.pathname);const sv=q.get('svc'),sl=n=>String(n||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),hit=sv&&T().services.find(x=>x.id===sv||sl(x.name)===sv);return liveBook(hit?hit.id:null)}")
+
+# /booking (and /book-now) is a real page that opens booking straight away — for Google's "Book" button
+R("if(q.get('book')&&liveOn()){","if((q.get('book')||/^\\/(booking|book-now)\\/?$/.test(location.pathname))&&liveOn()){")
