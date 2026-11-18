@@ -16,11 +16,12 @@ SOCIAL = ['https://www.facebook.com/share/192dtBBr77/', 'https://www.instagram.c
 TODAY = datetime.date.today().isoformat()
 
 # name, from price, duration text, short description
-VALET = [('Maintenance Valet', 80, '2 hrs', 'A regular wash and interior tidy to keep a well-kept car looking its best between deeper cleans.'),
-         ('Full Valet', 100, '3 hrs', 'Our complete inside-and-out refresh — hand wash, wheels, glass, vacuum, wipe-down and dressings.'),
+MAINT = ('Maintenance Valet', 80, '2 hrs', 'A regular wash and interior tidy to keep a well-kept car looking its best between deeper cleans.')
+VALET = [('Full Valet', 100, '3 hrs', 'Our complete inside-and-out refresh — hand wash, wheels, glass, vacuum, wipe-down and dressings.'),
          ('Interior Deep Clean', 120, '3.5 hrs', 'An intensive clean focused on the cabin: seats, carpets, headlining and every hard surface.'),
          ('Exterior Deep Clean', 120, '3 hrs', 'Full exterior decontamination — snow foam, iron fallout, tar removal — finished with protection.'),
-         ('Intensive Deep Clean', 200, '5 hrs', 'For neglected vehicles — heavy soiling, pet hair and stains brought back to life.')]
+         ('Intensive Deep Clean', 200, '5 hrs', 'For neglected vehicles — heavy soiling, pet hair and stains brought back to life.'),
+         ('Enhancement Detail + 2yr Ceramic', 500, '1 day', 'Single-stage machine polish to lift gloss, sealed with a 2-year ceramic coating.')]
 DETAIL = [('Enhancement Detail + 2yr Ceramic', 500, '1 day', 'Single-stage machine polish to lift gloss, sealed with a 2-year ceramic coating.'),
           ('Enhancement + Ceramic + Interior', 600, '2 days', 'The enhancement package plus a full interior deep clean.'),
           ('2-Stage Correction + Ceramic + Interior', 800, '2 days', 'Two-stage paint correction removing most swirls and scratches, ceramic coated, plus interior deep clean.'),
@@ -36,9 +37,9 @@ KINDS = {
   'car-valeting': dict(h='Car Valeting', noun='car valeting', svcs=VALET, kick='Mobile car valeting',
     lead='Mobile car valeting in {t}, done on your driveway or at your workplace. We bring our own water — all we need is a power socket nearby, and you just hand over the keys.',
     intros=['Whether it is the school-run SUV or the weekend car, our {t} customers book us for a proper hand valet without leaving home.',
-            'From a quick maintenance wash to a full interior deep clean, we valet cars across {t} and the surrounding {d} area every week.',
+            'From a full valet to an enhancement detail with ceramic coating, we valet cars across {t} and the surrounding {d} area every week.',
             'Busy week? We come to you anywhere in {t} — {pc} — and leave your car spotless inside and out.'],
-    faq=[('How much does a car valet cost in {t}?', 'A maintenance valet starts from £80 and a full valet from £100 for a small car. Larger vehicles and heavily soiled interiors cost a little more — you will see the exact price when you book online.'),
+    faq=[('How much does a car valet cost in {t}?', 'A full valet starts from £100 for a small car, and an enhancement detail with a 2-year ceramic coating from £500. Larger vehicles and heavily soiled interiors cost a little more — you will see the exact price when you book online.'),
          ('Do I need to provide water or electricity?', 'We bring our own water, so you do not need a tap. We just need access to a power socket within reach of the car — on a driveway, at your workplace or anywhere in {t} with a socket nearby.'),
          ('How long does a full valet take?', 'Around three hours for a typical car. Intensive deep cleans for very dirty or pet-hair-heavy cars can take up to five hours.'),
          ('Can you remove pet hair and bad smells?', 'Yes — we offer specialist pet hair removal and ozone odour treatment as add-ons to any valet.')]),
@@ -123,7 +124,7 @@ def town_page(kind, t):
     nb = near(t)
     url = f"{SITE}/{kind}/{sl}"
     title = f"{K['h']} {name} | Mobile {K['noun']} in {name}, Kent | {BIZ}"
-    desc = f"{K['h']} in {name} ({pc.split(',')[0]}). " + {'car-valeting': 'Mobile hand valets on your drive from £80 — own water on board, fully insured. Book online in 2 minutes.',
+    desc = f"{K['h']} in {name} ({pc.split(',')[0]}). " + {'car-valeting': 'Mobile hand valets on your drive from £100 — own water on board, fully insured. Book online in 2 minutes.',
         'car-detailing': 'Machine polishing, paint correction & ceramic protection at your home. Fully insured, book online.',
         'ceramic-coating': 'Professional ceramic coatings with a verifiable warranty certificate, applied on your drive. From £330.'}[kind]
     others = [k for k in KINDS if k != kind]
@@ -165,7 +166,7 @@ def fleet_page():
     body = f"""<div class="hero"><div class="w"><div class="kick">Business &amp; fleet</div><h1>Fleet &amp; business valeting across Kent</h1><p class="lead">Keep your company cars, vans and dealership stock looking sharp — cleaned on-site at your premises, invoiced monthly, with no downtime for your team.</p>
 <div class="row"><a class="btn p" href="/?fleet=1">Get a fleet quote</a><a class="btn g" href="https://wa.me/{WA}?text=Hi%2C%20I%27d%20like%20a%20fleet%20valeting%20quote">WhatsApp us</a><a class="btn" href="tel:{PHONE.replace(' ','')}">Call {PHONE}</a></div></div></div>
 <section><div class="w"><h2>Why businesses use {BIZ}</h2><ul class="t"><li>On-site at your yard, office or car park</li><li>Monthly invoicing to your company</li><li>Regular fixed weekly or monthly slots</li><li>Volume pricing for 2+ vehicles</li><li>Fully insured, own water on board</li><li>One contact, one invoice</li><li>Vans, pickups, company cars and dealership stock</li><li>Ceramic protection for new fleet vehicles</li></ul></div></section>
-<section><div class="w"><h2>Fleet services</h2>{svc_cards([VALET[0], VALET[1], VALET[2], CERAMIC[0]])}</div></section>
+<section><div class="w"><h2>Fleet services</h2>{svc_cards([MAINT, VALET[0], VALET[1], CERAMIC[0]])}</div></section>
 <section><div class="w"><h2>FAQs</h2>{''.join(f'<details><summary>{E(q)}</summary><p>{E(a)}</p></details>' for q, a in faqs)}</div></section>
 <section><div class="w cta"><h2>Get a fleet quote in 60 seconds</h2><p class="mu">Tell us how many vehicles and how often — we reply within one working day.</p><a class="btn p" href="/?fleet=1">Get a quote</a></div></section>
 <section><div class="w"><h3>Fleet valeting across Kent</h3><div class="chips">{''.join(f'<a class="chip" href="/car-valeting/{slug(t[0])}">{E(t[0])}</a>' for t in TOWNS)}</div></div></section>"""
