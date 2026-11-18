@@ -1,8 +1,8 @@
 # ---- appended into build_live.py (exec'd) : next free slot, slider, reviews, coverage map, fleet, certificates
 import sys,json
 sys.path.insert(0,'/home/claude/ValetIQ-repo/docs')
-from towns import TOWNS, slug as tslug
-KT=json.dumps([[n,round(a,4),round(b,4),tslug(n)] for n,a,b,pc,d in TOWNS],separators=(',',':'))
+from towns import TOWNS, slug as tslug, miles
+KT=json.dumps([[t[0],round(t[1],4),round(t[2],4),tslug(t[0]),round(miles(t))] for t in TOWNS],separators=(',',':'))
 
 R(".stars{color:#fbbf24;letter-spacing:2px}",
 ".stars{color:#fbbf24;letter-spacing:2px}"
@@ -10,7 +10,7 @@ R(".stars{color:#fbbf24;letter-spacing:2px}",
 "@keyframes nfp{0%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}70%{box-shadow:0 0 0 10px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}@keyframes nfsIn{from{opacity:0;transform:translateY(8px)}}"
 ".ba .hd{position:absolute;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:#fff;box-shadow:0 6px 22px rgba(0,0,0,.5),0 0 0 5px rgba(255,255,255,.22);display:grid;place-items:center;pointer-events:none;color:#0b0f19;z-index:2}.ba .hd svg{width:26px;height:26px}.ba .ln{width:3px;margin-left:-1px;z-index:1}.ba input{touch-action:pan-y;z-index:3}.ba .lb{z-index:2}"
 ".covw{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}@media(max-width:800px){.covw{grid-template-columns:1fr}}.covmap{height:440px;border-radius:18px;overflow:hidden;border:1px solid var(--ln);background:#070a12}@media(max-width:600px){.covmap{height:340px}}"
-".covtowns{display:flex;flex-wrap:wrap;gap:6px;max-height:250px;overflow:auto;margin-top:12px}.covtowns a{font-size:12px;padding:5px 10px;border-radius:999px;background:var(--p2);border:1px solid var(--ln);color:inherit;text-decoration:none}.covtowns a:hover{border-color:var(--ac)}"
+".covtowns{display:flex;flex-wrap:wrap;gap:6px;max-height:300px;overflow:auto;margin-top:8px}.covtowns a{font-size:12px;padding:5px 10px;border-radius:999px;background:var(--p2);border:1px solid var(--ln);color:inherit;text-decoration:none}.covtowns a:hover{border-color:var(--ac)}"
 ".cvdot{width:12px;height:12px;border-radius:50%;background:var(--ac,#2f8cff);box-shadow:0 0 0 3px rgba(47,140,255,.25),0 0 14px 3px rgba(47,140,255,.7)}.cvme{width:18px;height:18px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.7);animation:nfp 1.6s infinite}"
 ".leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0d1322!important;color:#fff!important;border:1px solid rgba(255,255,255,.12)}.leaflet-popup-content a{color:#7cc0ff!important;font-weight:700}.leaflet-container{font-family:inherit!important}"
 ".fleet{position:relative;overflow:hidden;border-radius:22px;padding:28px;background:linear-gradient(135deg,#0d1730,#070a12 60%);border:1px solid var(--ln)}.fleet:after{content:'';position:absolute;right:-80px;top:-80px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(47,140,255,.35),transparent 70%)}.fleet ul{list-style:none;padding:0;margin:14px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px 18px}@media(max-width:600px){.fleet ul{grid-template-columns:1fr}}.fleet li:before{content:'✓';color:#22c55e;font-weight:800;margin-right:8px}"
@@ -68,21 +68,13 @@ function baHint(){if(!window.IntersectionObserver)return;document.querySelectorA
 function mapRv(L){return(L||[]).map((x,i)=>({id:'x'+i,name:x.author||x.name,town:'',stars:x.rating||x.stars||5,text:x.text||'',source:x.source,approved:true,service:'',avatar:x.avatar||null,author:x.author,rating:x.rating}))}
 /* ===== coverage map ===== */
 const KT=__KT__;
-function coverHTML(t){const host=location.host.replace(/^www\./,'');return`<section class="s" id="s-cover"><div class="shead"><div><div class="kick">Coverage</div><h2>We come to you — anywhere in ${esc(areaLabel(t))}</h2><p>Fully mobile with our own water and power. Check your postcode or tap a town on the map.</p></div></div>
- <div class="covw"><div id="covmap" class="covmap"></div><div class="card col"><b>Do you cover me?</b><form class="pcbox" style="margin-top:8px" onsubmit="event.preventDefault();covCheck()"><input id="cpc" placeholder="Enter your postcode" autocomplete="postal-code"><button class="btn pri">Check</button></form><div id="cres" class="tiny" style="min-height:20px;margin-top:8px"></div>
- <div class="tiny mu" style="margin-top:10px">Towns we visit every week:</div><div class="covtowns">${KT.map(x=>`<a href="/car-valeting/${x[3]}">${esc(x[0])}</a>`).join('')}</div></div></div></section>`}
-let _llP=null;function loadLeaflet(){if(window.L)return Promise.resolve();if(!_llP)_llP=new Promise((res,rej)=>{const c=document.createElement('link');c.rel='stylesheet';c.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(c);const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.onload=res;s.onerror=rej;document.head.appendChild(s)});return _llP}
-function covInit(){const el=$('covmap');if(!el||el._m||el._busy)return;const r=el.getBoundingClientRect();if(r.top>innerHeight*1.6||r.bottom<-200)return;el._busy=1;
- loadLeaflet().then(()=>{if(!document.body.contains(el))return;const mob=matchMedia('(pointer:coarse)').matches;const m=L.map(el,{scrollWheelZoom:false,dragging:!mob,tap:false,zoomControl:!mob,attributionControl:true});el._m=m;
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:18}).addTo(m);
-  const ic=L.divIcon({className:'',html:'<div class="cvdot"></div>',iconSize:[12,12]});const pts=[];
-  KT.forEach(x=>{pts.push([x[1],x[2]]);L.marker([x[1],x[2]],{icon:ic,title:x[0]}).addTo(m).bindPopup(`<b>${esc(x[0])}</b><br><a href="/car-valeting/${x[3]}">Car valeting in ${esc(x[0])} →</a><br><a href="/ceramic-coating/${x[3]}">Ceramic coating in ${esc(x[0])} →</a>`)});
-  m.fitBounds(pts,{padding:[24,24]});if(mob)el.addEventListener('click',()=>{m.dragging.enable()},{once:true})}).catch(()=>{el.innerHTML='<div class="mu tiny" style="padding:20px">Map unavailable — check your postcode instead.</div>'})}
-function covCheck(){const t=T(),pc=val('cpc'),res=areaCheck(t,pc);$('cres').innerHTML=`<span style="color:${res.ok?'#86efac':'#fca5a5'}">${esc(res.msg)}</span> ${res.ok?`<button class="btn xs pri" onclick="BK=null;newBK({pc:'${esc(fmtPC(pc))}'});BK.area=areaCheck(T(),BK.pc);BK.step=2;go('book')">Book now →</button>`:''}`;
- const el=$('covmap'),m=el&&el._m;if(m&&res.out){const c=CENT[res.out]||AREAC[letters(res.out)];if(c){if(el._me)m.removeLayer(el._me);el._me=L.marker(c,{icon:L.divIcon({className:'',html:'<div class="cvme"></div>',iconSize:[18,18]})}).addTo(m);m.flyTo(c,11,{duration:1.2})}}}
+function coverHTML(t){return`<section class="s" id="s-cover"><div class="shead"><div><div class="kick">Areas we cover</div><h2>Based in Sheerness — covering Sheppey, Swale &amp; Kent</h2><p>Fully mobile — we bring our own water, you just provide a power socket. We start on the Isle of Sheppey and work outwards across Kent.</p></div></div>
+ <div class="card col"><b>Do you cover me?</b><form class="pcbox" style="margin-top:8px;max-width:520px" onsubmit="event.preventDefault();covCheck()"><input id="cpc" placeholder="Enter your postcode" autocomplete="postal-code"><button class="btn pri">Check</button></form><div id="cres" class="tiny" style="min-height:20px;margin-top:8px"></div>
+ <div class="tiny mu" style="margin-top:10px">Closest first — tap your town:</div><div class="covtowns">${KT.map(x=>`<a href="/car-valeting/${x[3]}">${esc(x[0])}${x[4]?` <span class="mu">· ${x[4]} mi</span>`:''}</a>`).join('')}</div><a class="tiny" href="/areas" style="display:inline-block;margin-top:10px">See all areas →</a></div></section>`}
+function covCheck(){const t=T(),pc=val('cpc'),res=areaCheck(t,pc);$('cres').innerHTML=`<span style="color:${res.ok?'#86efac':'#fca5a5'}">${esc(res.msg)}</span> ${res.ok?`<button class="btn xs pri" onclick="BK=null;newBK({pc:'${esc(fmtPC(pc))}'});BK.area=areaCheck(T(),BK.pc);BK.step=2;go('book')">Book now →</button>`:`<a class="btn xs" href="https://wa.me/${intl(t.settings.whatsapp)}">Ask on WhatsApp</a>`}`}
 /* ===== business / fleet ===== */
 function fleetHTML(t){return`<section class="s" id="s-fleet"><div class="fleet"><div class="kick">Business &amp; fleet</div><h2 style="margin:6px 0">Fleet valeting for Kent businesses</h2><p class="mu" style="max-width:620px">Company cars, vans, dealerships and hire fleets cleaned at your premises — with no downtime for your team.</p>
- <ul><li>On-site at your yard or office</li><li>Monthly invoicing to your company</li><li>Regular fixed slots</li><li>Volume pricing for 2+ vehicles</li><li>Fully insured, own water & power</li><li>One contact, one invoice</li></ul><div class="row" style="gap:8px;position:relative;z-index:1"><button class="btn pri" onclick="fleetForm()">Get a fleet quote</button><a class="btn" href="/fleet-valeting">Learn more</a></div></div></section>`}
+ <ul><li>On-site at your yard or office</li><li>Monthly invoicing to your company</li><li>Regular fixed slots</li><li>Volume pricing for 2+ vehicles</li><li>Fully insured, own water on board</li><li>One contact, one invoice</li></ul><div class="row" style="gap:8px;position:relative;z-index:1"><button class="btn pri" onclick="fleetForm()">Get a fleet quote</button><a class="btn" href="/fleet-valeting">Learn more</a></div></div></section>`}
 function fleetForm(){modal(`<div class="kick">Business &amp; fleet</div><h2>Get a fleet quote</h2><p class="mu tiny">Tell us about your vehicles — we'll come back with a price within one working day.</p>
  <label class="f">Company name</label><input id="fq_co" autocomplete="organization"><div class="grid g2"><div><label class="f">Your name <b>*</b></label><input id="fq_n" autocomplete="name"></div><div><label class="f">Phone <b>*</b></label><input id="fq_p" type="tel" autocomplete="tel"></div></div>
  <div class="grid g2"><div><label class="f">Email</label><input id="fq_e" type="email" autocomplete="email"></div><div><label class="f">Site postcode</label><input id="fq_pc" autocomplete="postal-code"></div></div>
@@ -103,7 +95,14 @@ async function showCert(code){modal(`<div style="text-align:center;padding:30px"
   modal(`<div class="row" style="gap:10px;margin-bottom:10px"><span style="font-size:30px">${c.void?'⛔':live?'✅':'⌛'}</span><div><h3 style="margin:0">${c.void?'This certificate has been cancelled':live?'Genuine certificate':'Warranty period ended'}</h3><div class="tiny mu">${esc(c.code)} · ${esc(c.product)} · ${live?'protected until '+certFmt(exp):'ended '+certFmt(exp)}</div></div></div>
    <img src="${url}" alt="Ceramic coating certificate" style="width:100%;border-radius:12px;display:block"><div class="row" style="gap:8px;margin-top:12px"><a class="btn pri" href="${url}" download="${esc(c.code)}.png">Download certificate</a><button class="btn" onclick="BK=null;closeModal();go('book')">Book a maintenance valet</button></div>`,{wide:true})}
  catch(e){modal(`<h3>Couldn't load the certificate</h3><p class="mu">${esc((e&&e.message)||'Please try again')}</p>`)}}
-setInterval(()=>{baHint();covInit()},700);
+setInterval(baHint,700);
 '''.replace('__KT__',KT)
 R("let NFS_PLACEHOLDER=0;","") if "let NFS_PLACEHOLDER=0;" in s else None
 R("function bootDone(){",NEWJS+"\nfunction bootDone(){")
+
+# we carry water only — customers provide a power socket
+R("fully insured and self-sufficient, with our own water and power.'","fully insured, with our own water on board.'")
+R("{k:'water, electric, power',a:'No need — we\\'re fully self-sufficient with our own water and power.'","{k:'water, electric, power',a:'We bring our own water — we just need access to a power socket near the car.'")
+R("We need access to water and electricity, or we will bring our own (please let us know).","We bring our own water, but need access to a power socket within reach of the vehicle.")
+R("['Do I need to provide water and power?','No — we are fully self-sufficient, though access to an outside tap is always helpful.']","['Do I need to provide water and power?','We bring our own water — we just need access to a power socket near the car.']")
+R("['Turned up on time, fully self-sufficient and the interior is like new. Great value.',5]","['Turned up on time, brought their own water and the interior is like new. Great value.',5]")

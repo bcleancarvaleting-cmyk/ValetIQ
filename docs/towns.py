@@ -68,7 +68,26 @@ TOWNS = [
  ("Lydd",50.9510,0.9070,"TN29","Folkestone and Hythe"),
  ("Ashford",51.1465,0.8750,"TN23, TN24, TN25","Ashford"),
  ("Wye",51.1850,0.9380,"TN25","Ashford"),
- ("Tenterden",51.0690,0.6890,"TN30","Ashford"),
+ ("Tenterden",51.0690,0.6890,"TN30","Ashford"), ("Eastchurch",51.4100,0.8800,"ME12","Swale"),
+ ("Leysdown-on-Sea",51.3960,0.9230,"ME12","Swale"),
+ ("Halfway",51.4220,0.7820,"ME12","Swale"),
+ ("Iwade",51.3790,0.7280,"ME9","Swale"),
+ ("Kemsley",51.3600,0.7380,"ME10","Swale"),
+ ("Milton Regis",51.3480,0.7300,"ME10","Swale"),
+ ("Bobbing",51.3540,0.7110,"ME9","Swale"),
+ ("Borden",51.3360,0.7020,"ME9","Swale"),
+ ("Newington",51.3540,0.6680,"ME9","Swale"),
+ ("Upchurch",51.3780,0.6510,"ME9","Swale"),
+ ("Hartlip",51.3470,0.6400,"ME9","Swale"),
+ ("Teynham",51.3330,0.8060,"ME9","Swale"),
 ]
 import re
 def slug(n): return re.sub(r'[^a-z0-9]+','-',n.lower()).strip('-')
+
+import math
+BASE = ("Sheerness", 51.4400, 0.7630)
+def miles(t):
+    la1, lo1, la2, lo2 = map(math.radians, (BASE[1], BASE[2], t[1], t[2]))
+    h = math.sin((la2-la1)/2)**2 + math.cos(la1)*math.cos(la2)*math.sin((lo2-lo1)/2)**2
+    return 2*3958.8*math.asin(math.sqrt(h))
+TOWNS.sort(key=miles)

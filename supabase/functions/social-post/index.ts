@@ -45,7 +45,7 @@ Style: ${facts.tone}. British English. 2 short paragraphs, 3-5 tasteful emojis, 
     const where = [town ? `in ${town}` : "", when ? `on ${when}` : ""].filter(Boolean).join(" ");
     const W = where ? " " + where : "";
     const up = (x: string) => x[0].toUpperCase() + x.slice(1);
-    const mid = pick([`${up(it)} got ${svc}${W} — fully mobile, so we came to them with our own water and power.`, `We gave ${it} ${svc}${W}. Showroom finish, right on the driveway.`, `${up(it)}${W} after ${svc} — looking brand new again.`]);
+    const mid = pick([`${up(it)} got ${svc}${W} — fully mobile, so we came to them with our own water on board.`, `We gave ${it} ${svc}${W}. Showroom finish, right on the driveway.`, `${up(it)}${W} after ${svc} — looking brand new again.`]);
     const cta = pick([`Want yours looking like this? Book online in seconds 👇`, `Spaces fill up fast — grab your slot online 👇`, `Treat your car — book your clean today 👇`]);
     return json({ ai: false, text: `${hook}\n\n${mid}\n\n${cta}\n${contact}\n\n${tags}` });
   } catch (e) { return json({ error: (e as Error).message }, 500); }
