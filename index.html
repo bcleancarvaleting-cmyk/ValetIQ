@@ -169,6 +169,10 @@ footer.sf{padding:30px 0 90px;border-top:1px solid var(--ln);color:var(--mu);fon
 .credit-card{background:linear-gradient(135deg,color-mix(in srgb,var(--ac) 70%,#000),#0b0d12);border-radius:16px;padding:18px;border:1px solid color-mix(in srgb,var(--ac) 50%,var(--ln))}
 .dots{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;align-items:center}.dots i{display:block;flex:0 0 14px;width:14px;height:14px;box-sizing:border-box;border-radius:4px;background:rgba(255,255,255,.2)}.dots i.u{background:#fff}.dots i.bkd{background:transparent;border:2px solid #fff}
 
+
+.hero .slide video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.hero .slide.vid{animation:none!important;transform:none!important}
+@media(prefers-reduced-motion:reduce){.hero .slide video{display:none}}
 .galg{display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
 @media(max-width:900px){.galg{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.galg{grid-template-columns:1fr}}
@@ -412,7 +416,7 @@ function renderSite(){const t=T(),S=t.settings;const app=$('app');
  <header class="snav"><div class="brand">${S.logo?`<img src="${esc(S.logo)}" alt="${esc(S.name)}" style="height:44px;width:44px;object-fit:contain;border-radius:10px">`:`<div class="badge">${initials(S.name)}</div>`}${S.showName===false&&S.logo?'':esc(S.name)}</div><span class="sp"></span><a class="acctpill" href="/account/" aria-label="My account">👤<span> My account</span></a>
   <div class="soc">${so.whatsapp?`<a href="${wa}" title="WhatsApp">WA</a>`:''}${so.facebook?`<a href="${esc(CFG.facebook)}" title="Facebook">f</a>`:''}${so.instagram?`<a href="${esc(CFG.instagram)}" title="Instagram">IG</a>`:''}${so.tiktok?`<a href="${esc(CFG.tiktok)}" title="TikTok">TT</a>`:''}</div>
   <button class="btn sm" onclick="siteMenu()">Menu</button><button class="btn sm pri" onclick="BK=null;go('book')">Book now</button></header></div>
- <section class="hero" id="hero"><div class="slides">${heroSlides(t).map((h,i)=>`<div class="slide ${i===0?'on':''}" style="background-image:url('${h.img}')"></div>`).join('')}<div class="hcap"><div class="hdots">${heroSlides(t).map((_,i)=>`<button class="${i===0?'on':''}" onclick="heroGo(${i},true)" aria-label="Slide ${i+1}"></button>`).join('')}</div>${heroSlides(t).length>1?`<button class="harr" onclick="heroGo(-1)" aria-label="Previous">‹</button><button class="harr" onclick="heroGo(1)" aria-label="Next">›</button>`:''}</div></div><div class="hin">
+ <section class="hero" id="hero"><div class="slides">${heroSlides(t).map((h,i)=>`<div class="slide ${i===0?'on':''}${h.video?' vid':''}" style="background-image:url('${h.img}')">${h.video?`<video autoplay muted loop playsinline preload="${i===0?'auto':'metadata'}" poster="${h.img}" src="${h.video}" aria-hidden="true"></video>`:''}</div>`).join('')}<div class="hcap"><div class="hdots">${heroSlides(t).map((_,i)=>`<button class="${i===0?'on':''}" onclick="heroGo(${i},true)" aria-label="Slide ${i+1}"></button>`).join('')}</div>${heroSlides(t).length>1?`<button class="harr" onclick="heroGo(-1)" aria-label="Previous">‹</button><button class="harr" onclick="heroGo(1)" aria-label="Next">›</button>`:''}</div></div><div class="hin">
   <h1>${esc(S.heroWhite||S.name)}${S.heroBlue?` <em>${esc(S.heroBlue)}</em>`:''}</h1><p class="mu" style="max-width:560px;font-size:18px">${esc(S.heroDesc||'')}</p>
   <form class="pcbox" onsubmit="event.preventDefault();heroCheck()"><input id="hpc" placeholder="Enter your postcode" autocomplete="postal-code"><button class="btn pri">Check & book</button></form><div id="hres" class="tiny" style="margin-top:8px;min-height:20px"></div>
   <div class="stats">${(S.stats||[]).slice(0,4).map(x=>`<div><b>${x.type==='rating'?avg+'★':x.type==='cleaned'?done+'+':esc(x.v)}</b><span>${x.type==='rating'?rv.length+' '+esc(x.l):esc(x.l)}</span></div>`).join('')}</div></div>
@@ -1091,7 +1095,7 @@ function applyLive(biz,sv,pl,sl){const st=biz.settings||{};const t=T();const S=t
  S.social={whatsapp:!!CFG.whatsapp,facebook:!!CFG.facebook,instagram:!!CFG.instagram,tiktok:!!CFG.tiktok};S.reviewSources={google:CFG.google,facebook:CFG.facebook,trustpilot:''};
  if(Array.isArray(st.stats))S.stats=st.stats.slice(0,4).map(x=>({type:'custom',v:x.v,l:x.l}));
  if(Array.isArray(st.faq))S.faq=st.faq;['terms','cancel','refund'].forEach(k=>{if(st[k])S[k]=st[k]});
- S.appStrip=st.appStrip===true;S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.url,caption:''}));
+ S.appStrip=st.appStrip===true;S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.url,video:h.video||'',caption:''}));
  S.offers=(st.offers||[]).map(o=>({id:o.id,title:o.title||'Offer',text:o.text||'',serviceId:o.serviceId,code:'',expires:o.expires||'',active:!!o.active}));
  if(sl&&sl.length)S.slots=sl.map(x=>({t:x.start_time.slice(0,5),on:x.enabled}));
  const br=st.brand||{};S.logo=br.logo||null;S.showName=br.showName!==false;if(st.accent)S.accent=st.accent;
