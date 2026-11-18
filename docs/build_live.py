@@ -284,8 +284,8 @@ let _bcLive=false;function startLive(){if(_bcLive||!window.supabase)return;_bcLi
 startLive();document.addEventListener('DOMContentLoaded',startLive);window.addEventListener('load',()=>{startLive();setTimeout(bootDone,1500)});""")
 
 # ---- hero video clips ----
-R("S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.url,caption:''}));","S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.url,video:h.video||'',caption:''}));")
-R("""<div class="slide ${i===0?'on':''}" style="background-image:url('${h.img}')"></div>""","""<div class="slide ${i===0?'on':''}${h.video?' vid':''}" style="background-image:url('${h.img}')">${h.video?`<video autoplay muted loop playsinline preload="${i===0?'auto':'metadata'}" poster="${h.img}" src="${h.video}" aria-hidden="true"></video>`:''}</div>""")
+R("S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.url,caption:''}));","S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.video&&h.url===h.video?'':h.url,video:h.video||'',caption:''}));")
+R("""<div class="slide ${i===0?'on':''}" style="background-image:url('${h.img}')"></div>""","""<div class="slide ${i===0?'on':''}${h.video?' vid':''}" style="background-image:url('${h.img}')">${h.video?`<video autoplay muted loop playsinline preload="${i===0?'auto':'metadata'}" ${h.img?`poster="${h.img}"`:''} src="${h.video}" muted aria-hidden="true"></video>`:''}</div>""")
 R(".galg{display:grid;","""
 .hero .slide video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .hero .slide.vid{animation:none!important;transform:none!important}

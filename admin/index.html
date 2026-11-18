@@ -802,18 +802,21 @@ async function vWebsite(){const st=S.biz.settings;const tab=S.wt||'brand';let bo
  $('main').innerHTML=`${subTabs('website')}<div class="row"><h2 style="margin:0">Website</h2><span class="sp"></span><a class="btn sm" href="/" target="_blank" rel="noopener">View site ↗</a></div><p class="tiny mu" style="margin:4px 0 10px">Changes show on bcleanvaleting.co.uk straight away.</p>
  <div class="tabs" style="margin-bottom:12px">${[['brand','Branding'],['home','Homepage'],['services','Service cards'],['offers','Offers'],['info','FAQs & policies'],['social','Social links'],['gallery','Gallery'],['gifts','Gift vouchers']].map(t=>`<button class="tab ${tab===t[0]?'on':''}" onclick="S.wt='${t[0]}';go('website')">${t[1]}</button>`).join('')}</div>${body}`}
 // ---------- Hero video clips ----------
-function videoPoster(file){return new Promise((res,rej)=>{const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';const u=URL.createObjectURL(file);v.src=u;
- v.onloadedmetadata=()=>{S._vdur=v.duration||0;v.currentTime=Math.min(1,(v.duration||2)/3)};
- v.onseeked=()=>{try{const sc=Math.min(1,1920/Math.max(v.videoWidth,v.videoHeight));const c=document.createElement('canvas');c.width=Math.round(v.videoWidth*sc);c.height=Math.round(v.videoHeight*sc);c.getContext('2d').drawImage(v,0,0,c.width,c.height);c.toBlob(b=>{URL.revokeObjectURL(u);b?res(b):rej(new Error('Could not read the video'))},'image/jpeg',.82)}catch(e){rej(e)}};
- v.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("This video format can't be read here — on iPhone set Settings → Camera → Formats → Most Compatible, or send it as MP4"))};setTimeout(()=>rej(new Error('Video took too long to read')),20000)})}
-async function addVideo(inp){const f=inp.files&&inp.files[0];inp.value='';if(!f)return;if(f.size>50*1024*1024)return toast('That clip is over 50MB — trim it to 10–20 seconds and try again',1);
- const done=busy('Preparing your clip…');try{const poster=await videoPoster(f);const id=`${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
-  const pPath=`${S.biz.id}/hero/${id}.jpg`;let r=await sb.storage.from('media').upload(pPath,poster,{contentType:'image/jpeg',cacheControl:'31536000'});if(r.error)throw r.error;
-  done();const done2=busy('Uploading video — keep this screen open…');const ext=(f.name.split('.').pop()||'mp4').toLowerCase().replace('mov','mov');const vPath=`${S.biz.id}/hero/${id}.${ext}`;
-  r=await sb.storage.from('media').upload(vPath,f,{contentType:f.type||'video/mp4',cacheControl:'31536000'});done2();if(r.error)throw r.error;
-  const url=sb.storage.from('media').getPublicUrl(pPath).data.publicUrl,video=sb.storage.from('media').getPublicUrl(vPath).data.publicUrl;
-  const ok=await saveSettings({heroSlides:[{url,video,caption:''},...(S.biz.settings.heroSlides||[])]});if(ok){toast(S._vdur>30?'Video added — tip: shorter clips (10–20s) load faster':'Video added to the top of your homepage 🎬');go('website')}}
- catch(e){try{done()}catch(_){}toast(errMsg(e),1)}}
+function videoPoster(file){return new Promise(res=>{let done=false;const fin=b=>{if(done)return;done=true;try{v.pause();v.remove()}catch(e){}URL.revokeObjectURL(u);res(b)};
+ const v=document.createElement('video');v.muted=true;v.defaultMuted=true;v.playsInline=true;v.setAttribute('playsinline','');v.setAttribute('muted','');v.preload='auto';v.style.cssText='position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0';const u=URL.createObjectURL(file);v.src=u;document.body.appendChild(v);
+ const grab=()=>{try{if(!v.videoWidth)return;const sc=Math.min(1,1920/Math.max(v.videoWidth,v.videoHeight));const c=document.createElement('canvas');c.width=Math.round(v.videoWidth*sc);c.height=Math.round(v.videoHeight*sc);c.getContext('2d').drawImage(v,0,0,c.width,c.height);c.toBlob(b=>fin(b||null),'image/jpeg',.82)}catch(e){fin(null)}};
+ v.onloadedmetadata=()=>{S._vdur=v.duration||0;try{v.currentTime=Math.min(1,(v.duration||2)/3)}catch(e){}};v.onseeked=grab;v.onloadeddata=()=>setTimeout(grab,300);v.onerror=()=>fin(null);
+ const p=v.play();if(p&&p.catch)p.catch(()=>{});setTimeout(()=>fin(null),8000)})}
+async function addVideo(inp){const f=inp.files&&inp.files[0];inp.value='';if(!f)return;if(f.size>50*1024*1024)return toast(`That clip is ${Math.round(f.size/1048576)}MB — the limit is 50MB. Trim it to 10–20 seconds (Photos → Edit) and try again`,1);
+ let done=busy('Preparing your clip…');try{const poster=await videoPoster(f);const id=`${Date.now()}-${Math.random().toString(36).slice(2,8)}`;let url='';
+  if(poster){const pPath=`${S.biz.id}/hero/${id}.jpg`;const r=await sb.storage.from('media').upload(pPath,poster,{contentType:'image/jpeg',cacheControl:'31536000'});if(!r.error)url=sb.storage.from('media').getPublicUrl(pPath).data.publicUrl}
+  if(!url){const first=(S.biz.settings.heroSlides||[]).find(h=>h.url&&!h.video);url=first?first.url:''}
+  done();done=busy(`Uploading video (${Math.max(1,Math.round(f.size/1048576))}MB) — keep this screen open…`);
+  const ext=(f.name.split('.').pop()||'mp4').toLowerCase();const type=f.type||(ext==='mov'?'video/quicktime':ext==='webm'?'video/webm':'video/mp4');const vPath=`${S.biz.id}/hero/${id}.${ext}`;
+  const r=await sb.storage.from('media').upload(vPath,f,{contentType:type,cacheControl:'31536000'});done();done=null;if(r.error)throw r.error;
+  const video=sb.storage.from('media').getPublicUrl(vPath).data.publicUrl;
+  const ok=await saveSettings({heroSlides:[{url:url||video,video,caption:''},...(S.biz.settings.heroSlides||[])]});if(ok){toast(S._vdur>30?'Video added — tip: shorter clips (10–20s) load faster':'Video added to the top of your homepage 🎬 (plays with no sound)');go('website')}}
+ catch(e){if(done)done();toast('Video upload failed: '+errMsg(e),1)}}
 async function addSlides(files){files=[...files];if(!files.length)return;const done=busy(`Uploading ${files.length} photo${files.length>1?'s':''}…`);const urls=[];
  try{for(const f of files)urls.push({url:await uploadImg(f,'hero',1920),caption:''})}catch(e){done();return toast(errMsg(e),1)}
  const ok=await saveSettings({heroSlides:[...(S.biz.settings.heroSlides||[]),...urls]});done();if(ok){toast(`${urls.length} photo${urls.length>1?'s':''} added`);go('website')}}
