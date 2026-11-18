@@ -1,5 +1,5 @@
 // B Clean customer app — installability, offline shell and notifications
-const C='bclean-account-v7';
+const C='bclean-account-v8';
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(['/account/','/account/manifest.webmanifest','/account/icon-192.png'])));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C&&x.startsWith('bclean-account')).map(x=>caches.delete(x)))));self.clients.claim()});
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==location.origin||!u.pathname.startsWith('/account'))return;
