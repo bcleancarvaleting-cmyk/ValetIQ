@@ -243,5 +243,22 @@ R("""<button class="btn block" onclick="closeModal();go('account')">My account</
 
 R("""class="pr">${s.poa?'<small class="mu" style="font-size:15px">Price on request</small>':`<small class="mu">from </small>${gbp(s.p[0])}`}</div>""","""class="pr">${s.poa?'<small class="mu" style="font-size:15px">Price on request</small>':s.offer?`<small class="mu">from </small><s class="was">${gbp(s.p[0])}</s> ${gbp(offP(s,s.p[0]))}`:`<small class="mu">from </small>${gbp(s.p[0])}`}</div>${s.offer?`<div class="offt">🏷 ${esc(s.offer.label)} · ${s.offer.txt}${s.offer.until?' · ends '+fd(s.offer.until).slice(4):''}</div>`:''}""")
 R(".popb{position:absolute;",".was{font-size:17px;color:#8a92a6;font-weight:500}.offt{display:inline-block;align-self:flex-start;font-size:12px;font-weight:800;background:#f59e0b;color:#111;padding:4px 10px;border-radius:999px}.svc.img>.popb,.popb{position:absolute;")
+# ---- gallery: aligned cards with date + location ----
+R("""<div class="grid g3">${t.gallery.filter(g=>g.show).map(g=>`<div>${baHTML(g)}<div class="tiny" style="margin-top:6px;font-weight:600">${esc(g.title)}</div></div>`).join('')||'<p class="mu">Gallery coming soon.</p>'}</div>""",
+  """<div class="galg">${t.gallery.filter(g=>g.show).map(g=>`<div class="gcard">${baHTML(g)}<div class="gmeta"><div class="gt">${esc(g.title||'')}</div>${g.date||g.loc?`<div class="gsub">${g.date?`<span>📅 ${new Date(g.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>`:''}${g.loc?`<span>📍 ${esc(g.loc)}</span>`:''}</div>`:''}</div></div>`).join('')||'<p class="mu">Gallery coming soon.</p>'}</div>""")
+R("t.gallery=(ga.data||[]).map(g=>({id:g.id,title:g.title,before:g.before_url,after:g.after_url,show:true}))",
+  "t.gallery=(ga.data||[]).map(g=>({id:g.id,title:g.title,before:g.before_url,after:g.after_url,date:g.done_on,loc:g.location,show:true}))")
+R(".order('created_at',{ascending:false}).limit(12)]);",".order('sort').order('created_at',{ascending:false}).limit(12)]);")
+R("</style>","""
+.galg{display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+@media(max-width:900px){.galg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.galg{grid-template-columns:1fr}}
+.gcard{background:var(--p1);border:1px solid var(--ln);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.gcard .ba{border-radius:0;aspect-ratio:1/1;width:100%}
+.gmeta{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.gmeta .gt{font-weight:700;font-size:15px;line-height:1.3}
+.gmeta .gsub{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--mu)}
+</style>""")
+
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))
