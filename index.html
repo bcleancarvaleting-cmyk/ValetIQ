@@ -172,7 +172,7 @@ footer.sf{padding:30px 0 90px;border-top:1px solid var(--ln);color:var(--mu);fon
 
 .hero .slide video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .hero .slide.vid{animation:none!important;transform:none!important}
-
+.hero video::-webkit-media-controls,.hero video::-webkit-media-controls-start-playback-button,.hero video::-webkit-media-controls-overlay-play-button{display:none!important;-webkit-appearance:none;opacity:0}
 .galg{display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
 @media(max-width:900px){.galg{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.galg{grid-template-columns:1fr}}
@@ -479,7 +479,13 @@ function sendChat(preset){const t=T(),S=t.settings;const text=preset||val('chm')
 function svcImg(t,s){return s.img||carSVG('a',(t.services.indexOf(s)%4)+1)}
 function heroSlides(t){const S=t.settings;if(S.heroSlides&&S.heroSlides.length)return S.heroSlides;return[{img:carSVG('a',1),caption:'Enhancement detail + 2-year ceramic'},{img:carSVG('a',2),caption:'Full valet · Maidstone'},{img:carSVG('a',3),caption:'Interior deep clean'},{img:carSVG('a',4),caption:'2-stage paint correction'}]}
 let HI=0;function heroGo(n,abs){const sl=document.querySelectorAll('#hero .slide');if(!sl.length)return;HI=abs?n:(HI+n+sl.length)%sl.length;sl.forEach((e,i)=>{e.classList.toggle('on',i===HI);if(i===HI){e.style.animation='none';void e.offsetWidth;e.style.animation=''}});document.querySelectorAll('#hero .hdots button').forEach((b,i)=>b.classList.toggle('on',i===HI));heroTimer()}
-function heroVid(){document.querySelectorAll('#hero video').forEach(v=>{v.muted=true;v.defaultMuted=true;v.playsInline=true;if(!v._k){v._k=1;v.addEventListener('error',()=>{v._dead=1;v.remove()});v.addEventListener('playing',()=>{v._ok=1});setTimeout(()=>{if(!v._ok&&v.readyState<2)v._dead=1},12000)}const p=v.play();if(p&&p.catch)p.catch(()=>{})})}
+function heroVid(){const sl=[...document.querySelectorAll('#hero .slide')],vs=[...document.querySelectorAll('#hero video')],multi=sl.length>1;
+ vs.forEach(v=>{v.muted=true;v.defaultMuted=true;v.playsInline=true;v.controls=false;v.loop=!multi;
+  if(!v._k){v._k=1;v.addEventListener('error',()=>{v._dead=1;v.remove();heroTimer()});v.addEventListener('playing',()=>{v._ok=1;const nx=sl[(sl.indexOf(v.parentNode)+1)%sl.length];const nv=nx&&nx.querySelector('video');if(nv&&nv.preload!=='auto')nv.preload='auto'});
+   const nxt=()=>{if(multi&&v.parentNode&&v.parentNode.classList.contains('on'))heroGo(1)};v.addEventListener('ended',nxt);v.addEventListener('timeupdate',()=>{if(multi&&v.currentTime>15)nxt()});setTimeout(()=>{if(!v._ok&&v.readyState<2)v._dead=1},15000)}
+  const on=v.parentNode&&v.parentNode.classList.contains('on');
+  if(on){if(multi&&!v._cur){try{v.currentTime=0}catch(e){}}v._cur=1;const p=v.play();if(p&&p.catch)p.catch(()=>{})}else if(multi){v._cur=0;setTimeout(()=>{if(!(v.parentNode&&v.parentNode.classList.contains('on')))v.pause()},1500)}})}
+if(!window._hvk){window._hvk=1;['touchstart','scroll','click','keydown'].forEach(ev=>addEventListener(ev,()=>heroVid(),{passive:true,once:true}));document.addEventListener('visibilitychange',()=>{if(!document.hidden)heroVid()})}
 function heroTimer(){clearInterval(window._ht);heroVid();if(document.querySelectorAll('#hero .slide').length>1)window._ht=setInterval(()=>{if(!$('hero'))return clearInterval(window._ht);const c=document.querySelectorAll('#hero .slide')[HI],v=c&&c.querySelector('video');if(v&&!v._dead&&!v.error)return;heroGo(1)},5500)}
 function heroInit(){HI=0;heroTimer();const h=$('hero');if(!h)return;let x0=null;h.addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});h.addEventListener('touchend',e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>45)heroGo(dx<0?1:-1);x0=null})}
 function siteMenu(){const items=[['Services','s-services'],['Pre-paid plans','s-members']];modal(`<h3>Menu</h3><a class="acctpill" style="display:flex;justify-content:center;padding:12px;margin:0 0 12px;font-size:15px;border-color:var(--ac)" href="/account/">👤 My account · bookings & pre-paid washes</a><div class="col">${items.map(i=>`<button class="btn block" onclick="closeModal();$('${i[1]}').scrollIntoView({behavior:'smooth'})">${i[0]}</button>`).join('')}<button class="btn block" onclick="closeModal();buyVoucher()">Gift vouchers</button><button class="btn block" onclick="closeModal();policies()">Terms & policies</button><button class="btn pri block" onclick="closeModal();BK=null;go('book')">Book now</button></div>`)}
@@ -1104,7 +1110,7 @@ function applyLive(biz,sv,pl,sl){const st=biz.settings||{};const t=T();const S=t
  S.social={whatsapp:!!CFG.whatsapp,facebook:!!CFG.facebook,instagram:!!CFG.instagram,tiktok:!!CFG.tiktok};S.reviewSources={google:CFG.google,facebook:CFG.facebook,trustpilot:''};
  if(Array.isArray(st.stats))S.stats=st.stats.slice(0,4).map(x=>({type:'custom',v:x.v,l:x.l}));
  if(Array.isArray(st.faq))S.faq=st.faq;['terms','cancel','refund'].forEach(k=>{if(st[k])S[k]=st[k]});
- S.appStrip=st.appStrip===true;S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.video&&h.url===h.video?'':h.url,video:h.video||'',caption:''}));
+ S.appStrip=st.appStrip===true;S.heroSlides=(st.heroSlides||[]).filter(h=>h&&h.url).map(h=>({img:h.video&&h.url===h.video?'':h.url,video:h.video||'',caption:''}));if(S.heroSlides.some(h=>h.video))S.heroSlides=S.heroSlides.filter(h=>h.video);
  S.offers=(st.offers||[]).map(o=>({id:o.id,title:o.title||'Offer',text:o.text||'',serviceId:o.serviceId,code:'',expires:o.expires||'',active:!!o.active}));
  if(sl&&sl.length)S.slots=sl.map(x=>({t:x.start_time.slice(0,5),on:x.enabled}));
  const br=st.brand||{};S.logo=br.logo||null;S.showName=br.showName!==false;if(st.accent)S.accent=st.accent;
