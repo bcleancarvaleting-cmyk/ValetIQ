@@ -108,3 +108,7 @@ R("['Do I need to provide water and power?','No — we are fully self-sufficient
 R("['Turned up on time, fully self-sufficient and the interior is like new. Great value.',5]","['Turned up on time, brought their own water and the interior is like new. Great value.',5]")
 
 R('<meta charset="utf-8">','<meta charset="utf-8"><meta name="google-site-verification" content="4R4QseL6JL9ga6bITPFnNC0Otcp4xOnaQ28lyqzb-04" />',1) if s.count('<meta charset="utf-8">')==1 else R('<meta charset="UTF-8">','<meta charset="UTF-8"><meta name="google-site-verification" content="4R4QseL6JL9ga6bITPFnNC0Otcp4xOnaQ28lyqzb-04" />',1)
+
+# /book/<service-slug> opens booking with that service picked
+R("if(q.get('book')&&liveOn()){history.replaceState(null,'',location.pathname);return liveBook(null)}",
+  "if(q.get('book')&&liveOn()){history.replaceState(null,'',location.pathname);const sv=q.get('svc'),sl=n=>String(n||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),hit=sv&&T().services.find(x=>x.id===sv||sl(x.name)===sv);return liveBook(hit?hit.id:null)}")

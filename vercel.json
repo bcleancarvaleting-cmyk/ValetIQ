@@ -65,6 +65,11 @@
       "source": "/ceramic-coating",
       "destination": "/areas",
       "permanent": false
+    },
+    {
+      "source": "/book/:svc",
+      "destination": "/?book=1&svc=:svc",
+      "permanent": false
     }
   ],
   "headers": [
