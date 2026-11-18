@@ -309,5 +309,11 @@ R("""<div class="row tiny mu"><span>Balance on the day</span><span class="sp"></
 R("pay:(lbCredit()&&LB.useCredit)?'credit':'deposit',policy_ok:!!LB.pol};","pay:(lbCredit()&&LB.useCredit)?'credit':'deposit',policy_ok:!!LB.pol,...(LB.vcode&&!(lbCredit()&&LB.useCredit)?{voucher:LB.vcode}:{})};")
 R("Delivered instantly by email, valid 12 months, usable against any service.","Emailed instantly, valid 12 months, usable against any valet or detail. £50, £100 or £200 — or any amount.")
 
+
+# --- hero video: stay on clip, force silent autoplay, drop clip if it can't play
+R("@media(prefers-reduced-motion:reduce){.hero .slide video{display:none}}","")
+R("function heroTimer(){clearInterval(window._ht);if(document.querySelectorAll('#hero .slide').length>1)window._ht=setInterval(()=>{if(!$('hero'))return clearInterval(window._ht);heroGo(1)},5500)}",
+"function heroVid(){document.querySelectorAll('#hero video').forEach(v=>{v.muted=true;v.defaultMuted=true;v.playsInline=true;if(!v._k){v._k=1;v.addEventListener('error',()=>{v._dead=1;v.remove()});v.addEventListener('playing',()=>{v._ok=1});setTimeout(()=>{if(!v._ok&&v.readyState<2)v._dead=1},12000)}const p=v.play();if(p&&p.catch)p.catch(()=>{})})}\nfunction heroTimer(){clearInterval(window._ht);heroVid();if(document.querySelectorAll('#hero .slide').length>1)window._ht=setInterval(()=>{if(!$('hero'))return clearInterval(window._ht);const c=document.querySelectorAll('#hero .slide')[HI],v=c&&c.querySelector('video');if(v&&!v._dead&&!v.error)return;heroGo(1)},5500)}")
+
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))

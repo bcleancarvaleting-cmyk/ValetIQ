@@ -807,15 +807,32 @@ function videoPoster(file){return new Promise(res=>{let done=false;const fin=b=>
  const grab=()=>{try{if(!v.videoWidth)return;const sc=Math.min(1,1920/Math.max(v.videoWidth,v.videoHeight));const c=document.createElement('canvas');c.width=Math.round(v.videoWidth*sc);c.height=Math.round(v.videoHeight*sc);c.getContext('2d').drawImage(v,0,0,c.width,c.height);c.toBlob(b=>fin(b||null),'image/jpeg',.82)}catch(e){fin(null)}};
  v.onloadedmetadata=()=>{S._vdur=v.duration||0;try{v.currentTime=Math.min(1,(v.duration||2)/3)}catch(e){}};v.onseeked=grab;v.onloadeddata=()=>setTimeout(grab,300);v.onerror=()=>fin(null);
  const p=v.play();if(p&&p.catch)p.catch(()=>{});setTimeout(()=>fin(null),8000)})}
+function shrinkVideo(file,onp){return new Promise(res=>{let done=false,rec=null,poster=null;const u=URL.createObjectURL(file);
+ const fin=out=>{if(done)return;done=true;try{v.pause();v.remove()}catch(e){}URL.revokeObjectURL(u);res(out)};
+ const mt=window.MediaRecorder&&MediaRecorder.isTypeSupported?['video/mp4;codecs=avc1.42E01F','video/mp4;codecs=avc1','video/mp4'].find(t=>{try{return MediaRecorder.isTypeSupported(t)}catch(e){return false}}):null;
+ const v=document.createElement('video');v.muted=true;v.defaultMuted=true;v.playsInline=true;v.setAttribute('playsinline','');v.setAttribute('muted','');v.preload='auto';v.style.cssText='position:fixed;left:0;top:0;width:4px;height:4px;opacity:.01;pointer-events:none;z-index:-1';v.src=u;document.body.appendChild(v);
+ v.onerror=()=>fin({poster:null,blob:null});setTimeout(()=>{if(!rec)fin({poster,blob:null})},10000);
+ v.onloadeddata=()=>{try{const W=v.videoWidth,H=v.videoHeight;if(!W)return fin({poster:null,blob:null});const sc=Math.min(1,1280/Math.max(W,H));const c=document.createElement('canvas');c.width=Math.round(W*sc/2)*2;c.height=Math.round(H*sc/2)*2;const g=c.getContext('2d');
+  const snap=()=>new Promise(r=>{try{g.drawImage(v,0,0,c.width,c.height);c.toBlob(b=>r(b),'image/jpeg',.82)}catch(e){r(null)}});
+  if(!mt||!c.captureStream){v.currentTime=Math.min(1,(v.duration||2)/3);v.onseeked=async()=>fin({poster:await snap(),blob:null});return}
+  const st=c.captureStream(30);const chunks=[];rec=new MediaRecorder(st,{mimeType:mt,videoBitsPerSecond:3000000});rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  rec.onstop=()=>{const b=new Blob(chunks,{type:'video/mp4'});fin({poster,blob:b.size>50000?b:null})};
+  const max=Math.min(v.duration||20,20);let raf;const draw=()=>{if(done)return;g.drawImage(v,0,0,c.width,c.height);if(onp)onp(Math.min(99,Math.round(v.currentTime/max*100)));if(v.currentTime>=max-.05||v.ended){try{rec.state!=='inactive'&&rec.stop()}catch(e){}return}raf=requestAnimationFrame(draw)};
+  v.onended=()=>{try{rec.state!=='inactive'&&rec.stop()}catch(e){}};
+  v.currentTime=0;const p=v.play();Promise.resolve(p).then(async()=>{g.drawImage(v,0,0,c.width,c.height);rec.start(500);draw();setTimeout(async()=>{poster=await snap()},400)}).catch(async()=>{poster=await snap();fin({poster,blob:null})});
+  setTimeout(()=>{try{rec&&rec.state!=='inactive'&&rec.stop()}catch(e){}},(max+15)*1000)}catch(e){fin({poster:null,blob:null})}}})}
 async function addVideo(inp){const f=inp.files&&inp.files[0];inp.value='';if(!f)return;if(f.size>50*1024*1024)return toast(`That clip is ${Math.round(f.size/1048576)}MB — the limit is 50MB. Trim it to 10–20 seconds (Photos → Edit) and try again`,1);
- let done=busy('Preparing your clip…');try{const poster=await videoPoster(f);const id=`${Date.now()}-${Math.random().toString(36).slice(2,8)}`;let url='';
+ let done=busy('Optimising your clip for the website… 0%');try{
+  const sv=await shrinkVideo(f,p=>{const m=document.querySelector('#busy b');if(m)m.textContent=`Optimising your clip for the website… ${p}% (keep this screen open)`});
+  let poster=sv.poster;if(!poster)poster=await videoPoster(f);const id=`${Date.now()}-${Math.random().toString(36).slice(2,8)}`;let url='';
   if(poster){const pPath=`${S.biz.id}/hero/${id}.jpg`;const r=await sb.storage.from('media').upload(pPath,poster,{contentType:'image/jpeg',cacheControl:'31536000'});if(!r.error)url=sb.storage.from('media').getPublicUrl(pPath).data.publicUrl}
-  if(!url){const first=(S.biz.settings.heroSlides||[]).find(h=>h.url&&!h.video);url=first?first.url:''}
-  done();done=busy(`Uploading video (${Math.max(1,Math.round(f.size/1048576))}MB) — keep this screen open…`);
-  const ext=(f.name.split('.').pop()||'mp4').toLowerCase();const type=f.type||(ext==='mov'?'video/quicktime':ext==='webm'?'video/webm':'video/mp4');const vPath=`${S.biz.id}/hero/${id}.${ext}`;
-  const r=await sb.storage.from('media').upload(vPath,f,{contentType:type,cacheControl:'31536000'});done();done=null;if(r.error)throw r.error;
+  const body=sv.blob||f;const conv=!!sv.blob;
+  done();done=busy(`Uploading video (${Math.max(1,Math.round(body.size/1048576))}MB) — keep this screen open…`);
+  const ext=conv?'mp4':(f.name.split('.').pop()||'mp4').toLowerCase();const type=conv?'video/mp4':(f.type||(ext==='mov'?'video/quicktime':ext==='webm'?'video/webm':'video/mp4'));const vPath=`${S.biz.id}/hero/${id}.${ext}`;
+  const r=await sb.storage.from('media').upload(vPath,body,{contentType:type,cacheControl:'31536000'});done();done=null;if(r.error)throw r.error;
   const video=sb.storage.from('media').getPublicUrl(vPath).data.publicUrl;
-  const ok=await saveSettings({heroSlides:[{url:url||video,video,caption:''},...(S.biz.settings.heroSlides||[])]});if(ok){toast(S._vdur>30?'Video added — tip: shorter clips (10–20s) load faster':'Video added to the top of your homepage 🎬 (plays with no sound)');go('website')}}
+  const rest=(S.biz.settings.heroSlides||[]).filter(h=>!h.video);if(!url){const first=rest.find(h=>h.url);url=first?first.url:''}
+  const ok=await saveSettings({heroSlides:[{url:url||video,video,caption:''},...rest]});if(ok){toast(conv?'Video added and optimised for phones 🎬 (silent, loops behind your text)':'Video added 🎬 — if it doesn’t play on the website, record it in “Most Compatible” (Settings → Camera → Formats) and add it again');go('website')}}
  catch(e){if(done)done();toast('Video upload failed: '+errMsg(e),1)}}
 async function addSlides(files){files=[...files];if(!files.length)return;const done=busy(`Uploading ${files.length} photo${files.length>1?'s':''}…`);const urls=[];
  try{for(const f of files)urls.push({url:await uploadImg(f,'hero',1920),caption:''})}catch(e){done();return toast(errMsg(e),1)}
