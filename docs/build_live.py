@@ -323,5 +323,22 @@ R("function heroTimer(){clearInterval(window._ht);if(document.querySelectorAll('
 if(!window._hvk){window._hvk=1;['touchstart','scroll','click','keydown'].forEach(ev=>addEventListener(ev,()=>heroVid(),{passive:true,once:true}));document.addEventListener('visibilitychange',()=>{if(!document.hidden)heroVid()})}
 function heroTimer(){clearInterval(window._ht);heroVid();if(document.querySelectorAll('#hero .slide').length>1)window._ht=setInterval(()=>{if(!$('hero'))return clearInterval(window._ht);const c=document.querySelectorAll('#hero .slide')[HI],v=c&&c.querySelector('video');if(v&&!v._dead&&!v.error)return;heroGo(1)},5500)}""")
 
+# --- epic merge between clips + clip labels
+R(".hero .slide.vid{animation:none!important;transform:none!important}",
+".hero .slide.vid{animation:none!important;transform:scale(1.18);filter:blur(16px) brightness(1.7) saturate(1.4);transition:opacity 1.3s cubic-bezier(.65,0,.35,1),transform 2.2s cubic-bezier(.16,1,.3,1),filter 1.4s cubic-bezier(.16,1,.3,1)}"
+".hero .slide.vid.on{transform:scale(1);filter:none;z-index:1}.hero .slide.vid.out{opacity:0;transform:scale(1.25) rotate(.6deg);filter:blur(18px) brightness(1.9);z-index:2}"
+".hsweep{position:absolute;inset:-20% -60%;pointer-events:none;z-index:3;opacity:0;background:linear-gradient(105deg,transparent 38%,rgba(120,190,255,.18) 45%,rgba(255,255,255,.55) 50%,rgba(120,190,255,.18) 55%,transparent 62%);transform:translateX(-70%)}"
+".hsweep.go{animation:hsw 1.25s cubic-bezier(.65,0,.35,1)}@keyframes hsw{0%{opacity:0;transform:translateX(-70%)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateX(70%)}}"
+".hflash{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;background:radial-gradient(ellipse at 60% 50%,rgba(255,255,255,.35),rgba(30,120,255,.12) 45%,transparent 75%)}.hflash.go{animation:hfl 1s ease-out}@keyframes hfl{0%{opacity:0}30%{opacity:1}100%{opacity:0}}"
+".vcap{position:absolute;right:clamp(16px,4vw,48px);top:clamp(90px,14vh,140px);z-index:4;padding:9px 16px 9px 14px;border-radius:999px;background:rgba(5,8,15,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.18);color:#fff;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:0;transform:translateX(30px);transition:opacity .6s .9s,transform .8s .9s cubic-bezier(.16,1,.3,1)}.vcap:before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:#2f8cff;margin-right:9px;box-shadow:0 0 10px #2f8cff;vertical-align:1px}.slide.on .vcap{opacity:1;transform:none}"
+"@media(prefers-reduced-motion:reduce){.hero .slide.vid,.hero .slide.vid.out{transform:none;filter:none}.hsweep,.hflash{display:none}}")
+R('aria-hidden="true"></video>`:'"''"'}</div>','aria-hidden="true"></video>`:'"''"'}${h.video&&h.caption?`<div class="vcap">${esc(h.caption)}</div>`:'"''"'}</div>')
+R('<div class="hcap">','<div class="hsweep"></div><div class="hflash"></div><div class="hcap">')
+R("video:h.video||'',caption:''}));","video:h.video||'',caption:h.video?(h.caption||''):''}));")
+R("let HI=0;function heroGo(n,abs){const sl=document.querySelectorAll('#hero .slide');if(!sl.length)return;HI=abs?n:(HI+n+sl.length)%sl.length;",
+"let HI=0;function heroGo(n,abs){const sl=document.querySelectorAll('#hero .slide');if(!sl.length)return;const prev=sl[HI];HI=abs?n:(HI+n+sl.length)%sl.length;if(prev&&prev!==sl[HI]&&prev.classList.contains('vid')){prev.classList.add('out');setTimeout(()=>prev.classList.remove('out'),1500);['hsweep','hflash'].forEach(c=>{const e=document.querySelector('#hero .'+c);if(e){e.classList.remove('go');void e.offsetWidth;e.classList.add('go')}})}")
+R("v.addEventListener('timeupdate',()=>{if(multi&&v.currentTime>15)nxt()})","v.addEventListener('timeupdate',()=>{if(multi&&(v.currentTime>15||(v.duration&&v.duration-v.currentTime<1.1)))nxt()})")
+
+R("v.addEventListener('playing',()=>{v._ok=1;","v.addEventListener('canplay',()=>{if(v.parentNode&&v.parentNode.classList.contains('on')&&v.paused){const p=v.play();if(p&&p.catch)p.catch(()=>{})}});v.addEventListener('playing',()=>{v._ok=1;")
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))
