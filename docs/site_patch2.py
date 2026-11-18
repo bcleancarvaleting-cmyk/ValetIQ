@@ -127,3 +127,8 @@ R(".stars{color:#fbbf24;letter-spacing:2px}",".stars{color:#fbbf24;letter-spacin
 R("S.appStrip=st.appStrip===true;","S.appStrip=st.appStrip===true;S.gReview=(st.reviewLinks&&st.reviewLinks.googlePlaceId)?'https://search.google.com/local/writereview?placeid='+encodeURIComponent(st.reviewLinks.googlePlaceId):(st.reviewUrl||(st.social&&st.social.google)||'');")
 R("function leaveReview(){modal(","function leaveReview(){const g=T().settings.gReview;if(g){window.open(g,'_blank','noopener');return}modal(")
 R("""${chips}<span class="sp"></span>${links}</div>""","""${chips}<span class="sp"></span>${S.gReview?`<a class="btn xs pri" href="${esc(S.gReview)}" target="_blank" rel="noopener">⭐ Leave us a Google review</a>`:links}</div>""")
+
+# review header: Google chip + review button side by side on mobile
+R("""${chips}<span class="sp"></span>${S.gReview?`<a class="btn xs pri" href="${esc(S.gReview)}" target="_blank" rel="noopener">⭐ Leave us a Google review</a>`:links}</div>""",
+  """<div class="rvact">${chips}${S.gReview?`<a class="btn xs pri" href="${esc(S.gReview)}" target="_blank" rel="noopener">⭐ Leave a Google review</a>`:links}</div></div>""")
+R(".rvsum{display:flex;align-items:center;gap:10px;flex-wrap:wrap}",".rvsum{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.rvact{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin-left:auto}.rvact>*{white-space:nowrap}@media(max-width:600px){.rvact{margin-left:0;width:100%}.rvact .rvchip{font-size:11.5px;padding:6px 9px}.rvact .btn{font-size:12px;padding:7px 11px}}")
