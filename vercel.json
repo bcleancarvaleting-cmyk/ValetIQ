@@ -10,6 +10,31 @@
       "source": "/account",
       "destination": "/account/",
       "permanent": false
+    },
+    {
+      "source": "/gift",
+      "destination": "/?gift=open",
+      "permanent": false
+    },
+    {
+      "source": "/gifts",
+      "destination": "/?gift=open",
+      "permanent": false
+    },
+    {
+      "source": "/gift/:amt",
+      "destination": "/?gift=:amt",
+      "permanent": false
+    },
+    {
+      "source": "/voucher/:code",
+      "destination": "/?voucher=:code",
+      "permanent": false
+    },
+    {
+      "source": "/book",
+      "destination": "/?book=1",
+      "permanent": false
     }
   ],
   "headers": [
