@@ -260,5 +260,15 @@ R("</style>","""
 .gmeta .gsub{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--mu)}
 </style>""")
 
+# ---- website visit tracking ----
+R("LIVE={biz,sbc};","LIVE={biz,sbc};siteTrack();")
+R("function refCapture(){",r"""function siteTrack(){try{if(sessionStorage.getItem('bc-trk'))return;const q=new URLSearchParams(location.search);let src=(q.get('utm_source')||q.get('src')||'').trim();const ua=navigator.userAgent||'';let h='';try{h=document.referrer?new URL(document.referrer).hostname.replace(/^www\./,''):''}catch(e){}
+ const N={fb:'Facebook',facebook:'Facebook',ig:'Instagram',instagram:'Instagram',google:'Google',wa:'WhatsApp',whatsapp:'WhatsApp',tiktok:'TikTok'};
+ if(src)src=N[src.toLowerCase()]||src;else if(q.get('gclid'))src='Google Ads';else if(/Instagram/i.test(ua)||/instagram/.test(h))src='Instagram';else if(q.get('fbclid')||/FBAN|FBAV|FB_IAB/.test(ua)||/facebook|fb\.(com|me)/.test(h))src='Facebook';
+ else if(!h||h===location.hostname.replace(/^www\./,''))src='Direct';else if(/google\./.test(h))src='Google';else if(/bing\./.test(h))src='Bing';else if(/whatsapp|wa\.me/.test(h))src='WhatsApp';else if(/tiktok/.test(h))src='TikTok';else if(/(^|\.)t\.co$|twitter|x\.com/.test(h))src='X / Twitter';else if(/yahoo|duckduckgo|ecosia|yell|checkatrade/.test(h))src=h.split('.')[0].replace(/^\w/,c=>c.toUpperCase());else src=h;
+ let v=localStorage.getItem('bc-vid');if(!v){v=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('bc-vid',v)}
+ sessionStorage.setItem('bc-trk','1');LIVE.sbc.rpc('track_view',{p_business:LIVE.biz.id,p_source:src,p_path:location.pathname,p_visitor:v}).then(()=>{},()=>{})}catch(e){}}
+function refCapture(){""")
+
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))
