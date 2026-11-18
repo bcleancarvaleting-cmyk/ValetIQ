@@ -54,6 +54,22 @@ Deno.serve(async (req) => {
         const { data: c } = await db.from("customers").select("first_name,last_name").eq("id", m.customer_id).single();
         await db.from("notifications").insert({ business_id: m.business_id, kind: "newPayment", text: `Pre-paid plan bought — ${p?.name || "plan"} (${n} washes, £${((o.amount_total || 0) / 100).toFixed(2)}) by ${c?.first_name || ""} ${c?.last_name || ""}` });
       }
+    } else if (ev.type === "checkout.session.completed" && o.payment_status === "paid" && o.metadata?.type === "voucher") {
+      const m = o.metadata; const { data: dup } = await db.from("gift_vouchers").select("id").eq("stripe_id", o.id).limit(1);
+      if (!dup || !dup.length) {
+        const { data: code } = await db.rpc("new_voucher_code", { p_business: m.business_id });
+        const exp = new Date(); exp.setFullYear(exp.getFullYear() + 1);
+        const amt = (o.amount_total || 0) / 100;
+        const { data: v } = await db.from("gift_vouchers").insert({ business_id: m.business_id, code, amount: amt, balance: amt, buyer_name: m.from_name || "", buyer_email: m.email || "", to_name: m.to_name || "", to_email: m.to_email || "", message: m.message || "", expires: exp.toISOString().slice(0, 10), source: "online", stripe_id: o.id }).select().single();
+        await db.from("payments").insert({ business_id: m.business_id, type: "voucher", amount: amt, method: "Card (Stripe)", stripe_id: o.payment_intent || o.id });
+        await db.from("notifications").insert({ business_id: m.business_id, kind: "newPayment", text: `Gift voucher sold — £${amt.toFixed(2)} for ${m.to_name || ""} from ${m.from_name || ""} (${code})` });
+        if (v) {
+          const { data: cfg } = await db.rpc("get_push_config");
+          const send = (to: string, who: string) => fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, { method: "POST", headers: { "Content-Type": "application/json", "x-push-secret": (cfg as any)?.push_hook || "" }, body: JSON.stringify({ business_id: m.business_id, kind: "voucher", voucher_id: v.id, to, who }) }).catch(() => null);
+          if (m.email) await send(m.email, "buyer");
+          if (m.to_email && m.to_email !== m.email) await send(m.to_email, "recipient");
+        }
+      }
     } else if (ev.type === "checkout.session.completed" && o.payment_status === "paid") {
       let bookingId = o.metadata?.booking_id; let businessId = o.metadata?.business_id;
       if ((!bookingId || !businessId) && o.payment_link) {

@@ -18,6 +18,7 @@ const DEF: Record<string, { title: string; text: string }> = {
   rebook: { title: "Time for your next clean?", text: "Hi {name}, it's been a little while since your last clean with {business}. Want to book your next one?" },
   checkup: { title: "Time for your coating check-up", text: "Hi {name}, your coating is due its check-up. Book a maintenance valet to keep your warranty valid." },
   referral: { title: "You've earned {amount}", text: "Hi {name}, a friend you referred has just used {business} — {amount} has been added to your account." },
+  voucher: { title: "Your {amount} {business} gift voucher 🎁", text: "Hi {name},\n\n{gift_line}\n\nUse code {code} when you book online — it comes straight off your total. Valid until {expires}." },
   test: { title: "Emails are working ✅", text: "This is a test email from your {business} booking system. Customer emails will look like this." },
 };
 Deno.serve(async (req) => {
@@ -43,13 +44,16 @@ Deno.serve(async (req) => {
     if (b.customer_id) c = (await db.from("customers").select("*").eq("id", b.customer_id).single()).data;
     if (b.booking_id) bk = (await db.from("bookings").select("*").eq("id", b.booking_id).single()).data;
     if (!c && bk) c = (await db.from("customers").select("*").eq("id", bk.customer_id).single()).data;
-    const to = kind === "test" ? (b.to || st.email) : (b.to || (c?.business_account && realEmail(c?.invoice_email) ? c.invoice_email : c?.email));
+    let gv: any = null; if (b.voucher_id) gv = (await db.from("gift_vouchers").select("*").eq("id", b.voucher_id).eq("business_id", biz.id).single()).data;
+    const to = kind === "test" || kind === "voucher" ? (b.to || st.email) : (b.to || (c?.business_account && realEmail(c?.invoice_email) ? c.invoice_email : c?.email));
     if (!realEmail(to)) return json({ skipped: "no email address" });
     const site = st.siteUrl || Deno.env.get("SITE_URL") || "https://bcleanvaleting.co.uk";
     const when = bk ? new Date(`${bk.date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) : "";
     const map: Record<string, string> = {
-      name: c?.first_name || "there", billname: (c?.business_account && String(c?.company_name || "").trim()) || c?.first_name || "there", business: biz.name, service: bk?.service_name || "", ref: bk?.ref || "", date: when,
-      time: bk ? (bk.days > 0 ? "all day" : String(bk.start_time).slice(0, 5)) : "", amount: "£" + Number(b.amount ?? bk?.total ?? 0).toFixed(2),
+      name: gv ? ((b.who === "recipient" ? gv.to_name : gv.buyer_name) || "there") : c?.first_name || "there",
+      code: gv?.code || "", expires: gv?.expires ? new Date(`${gv.expires}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "",
+      gift_line: gv ? (b.who === "recipient" ? `${gv.buyer_name || "Someone"} has sent you a £${Number(gv.amount).toFixed(0)} gift voucher for ${biz.name}!${gv.message ? `\n\n“${gv.message}”` : ""}` : `Thanks for buying a £${Number(gv.amount).toFixed(0)} gift voucher for ${gv.to_name || "someone special"}. Here it is — forward this email or share the code with them.`) : "", billname: (c?.business_account && String(c?.company_name || "").trim()) || c?.first_name || "there", business: biz.name, service: bk?.service_name || "", ref: bk?.ref || "", date: when,
+      time: bk ? (bk.days > 0 ? "all day" : String(bk.start_time).slice(0, 5)) : "", amount: "£" + Number(b.amount ?? gv?.amount ?? bk?.total ?? 0).toFixed(gv && !b.amount ? 0 : 2),
       pay_link: b.pay_link || "", number: b.number || (bk ? "INV-" + bk.ref : ""),
       due_line: b.due ? (new Date(`${b.due}T23:59:00`).getTime() < Date.now() ? `It was due on ${new Date(`${b.due}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}.` : `It's due by ${new Date(`${b.due}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}.`) : "", review_link: st.reviewUrl || "", site, calendar_link: bk ? `${site}/cal/${bk.id}` : "", google_link: "", bank_details: "", ref_code: c?.referral_code || "",
     };
@@ -66,6 +70,8 @@ Deno.serve(async (req) => {
     if (kind === "welcome" || kind === "referral") btns.push(["Open my account", `${site}/account/`]);
     if (kind === "review" && st.reviewUrl) btns.push(["Leave a review ⭐", st.reviewUrl]);
     if (kind === "rebook" || kind === "checkup") btns.push(["Book now", `${site}/?book=1`]);
+    if (kind === "voucher" && gv) btns.push(["Book with this voucher", `${site}/?voucher=${encodeURIComponent(gv.code)}`]);
+    const giftCard = kind === "voucher" && gv ? `<div style="margin-top:18px;border-radius:16px;padding:22px;background:linear-gradient(135deg,#0b0d12,${ac});color:#fff;text-align:center"><div style="font-size:12px;letter-spacing:.2em;opacity:.8">GIFT VOUCHER</div><div style="font-size:44px;font-weight:800;margin:6px 0">£${Number(gv.amount).toFixed(0)}</div><div style="font-size:14px;opacity:.9">${esc(gv.to_name ? "For " + gv.to_name : "")}${gv.buyer_name ? " · from " + esc(gv.buyer_name) : ""}</div><div style="margin-top:14px;display:inline-block;background:#fff;color:#111;border-radius:10px;padding:10px 18px;font-size:20px;font-weight:800;letter-spacing:.08em">${esc(gv.code)}</div><div style="font-size:12px;margin-top:10px;opacity:.85">Valid until ${esc(map.expires)} · use against any service</div></div>` : "";
     const bank = isInv && I.sortCode && I.accNo ? `<div style="margin-top:18px;padding:14px 16px;background:#f5f6f8;border-radius:10px;font-size:14px;color:#333"><b>Prefer bank transfer?</b><br>${I.accName ? esc(I.accName) + "<br>" : ""}Sort code <b>${esc(I.sortCode)}</b> · Account <b>${esc(I.accNo)}</b><br>Reference <b>${esc(bk?.ref || "")}</b></div>` : "";
     const details = bk && ["confirmed", "reminder", "invoice", "invoice_reminder", "received"].includes(kind) ? `<table style="width:100%;margin-top:18px;font-size:14px;border-collapse:collapse">${[["Service", bk.service_name], ["Date", when + (bk.days > 0 ? "" : " at " + map.time)], ["Address", [bk.address, bk.postcode].filter(Boolean).join(", ")], ["Ref", bk.ref]].filter((r) => r[1]).map((r) => `<tr><td style="padding:6px 0;color:#777;width:34%">${r[0]}</td><td style="padding:6px 0;font-weight:600;color:#111">${esc(r[1])}</td></tr>`).join("")}</table>` : "";
     const ch = Number(st.cancelHours ?? 48);
@@ -80,7 +86,7 @@ Deno.serve(async (req) => {
 <div style="background:#0b0d12;border-radius:16px 16px 0 0;padding:22px 26px;text-align:left">${br.logo ? `<img src="${esc(br.logo)}" alt="" style="height:46px;vertical-align:middle;border-radius:8px">` : ""}<span style="color:#fff;font-size:20px;font-weight:700;vertical-align:middle;margin-left:${br.logo ? 10 : 0}px">${esc(biz.name)}</span></div>
 <div style="background:#fff;border-radius:0 0 16px 16px;padding:26px">
 <h1 style="margin:0 0 12px;font-size:22px;color:#111">${esc(subject)}</h1>
-<div style="font-size:15px;line-height:1.6;color:#333;white-space:pre-line">${esc(text)}</div>${details}${bank}
+<div style="font-size:15px;line-height:1.6;color:#333;white-space:pre-line">${esc(text)}</div>${giftCard}${details}${bank}
 ${btns.length ? `<div style="margin-top:22px">${btns.map(([t, u], i) => `<a href="${esc(u)}" style="display:inline-block;margin:0 8px 8px 0;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;${i ? `border:2px solid ${ac};color:${ac}` : `background:${ac};color:#fff`}">${esc(t)}</a>`).join("")}</div>` : ""}
 ${pol}
 ${isInv && kind === "invoice" ? "" : `<p style="margin:24px 0 0;font-size:14px;color:#333">${esc(I.thanks || "Thanks for using " + biz.name)}</p>`}</div>
