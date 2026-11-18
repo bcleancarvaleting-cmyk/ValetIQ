@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const key = (await keysFor(b.business_id)).secret;
     if (!key) return json({ error: "Card payments aren't connected yet — add your Stripe key in Settings → Payments." }, 400);
     const admin = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    let emailError = "";
+    let emailError = ""; let copyInfo: any = null;
     const emailInvoice = async (kind: string, l: any, amount: number) => {
       const { data: ek } = await admin.rpc("get_business_email", { p_business: b.business_id });
       if (!(ek as any)?.key) return false;
@@ -42,6 +42,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ business_id: b.business_id, kind, booking_id: b.id, customer_id: (b as any).customer_id, amount, pay_link: l.url, link_id: l.id, pdf: l.pdf, number: l.number, due: l.due_date, force: kind === "invoice_reminder" }) });
       const j: any = await r.json().catch(() => ({}));
       if (!(r.ok && j?.sent)) emailError = j?.error || j?.skipped || "Email could not be sent";
+      copyInfo = j?.copy || null;
       return r.ok && !!j?.sent;
     };
     if (action === "remind") {
@@ -88,7 +89,8 @@ Deno.serve(async (req) => {
     if (ex && ex.id.startsWith("in_")) {
       try {
         const old = await stripe("GET", `invoices/${ex.id}`, key);
-        if (old.status === "open" && (old.customer_name || "") !== billName) {
+        const pre = String(biz.settings?.invoicePrefix || "");
+        if (old.status === "open" && ((old.customer_name || "") !== billName || (pre && !String(old.number || "").startsWith(pre)))) {
           await stripe("POST", `invoices/${ex.id}/void`, key, {});
           await admin.from("payment_links").delete().eq("id", ex.id); ex = null;
         } else if (old.status === "paid") { return json({ error: "Stripe shows this invoice as already paid — it will update shortly, or record the payment" }, 400); }
@@ -106,7 +108,7 @@ Deno.serve(async (req) => {
           await admin.from("payment_links").update({ pdf: ex.pdf, number: ex.number, due_date: ex.due_date, ...(emailed || sent ? { sent_at: new Date().toISOString() } : {}) }).eq("id", ex.id);
         }
       }
-      return json({ url: ex.url, pdf: ex.pdf, amount: owed / 100, reused: true, emailed, sent, to: billEmail, email_error: emailError });
+      return json({ url: ex.url, pdf: ex.pdf, amount: owed / 100, reused: true, emailed, sent, to: billEmail, email_error: emailError, copy: copyInfo });
     }
     if (!hasEmail && ex && ex.id.startsWith("cs_") && Date.now() - new Date(ex.created_at).getTime() < 22 * 3600e3) return json({ url: ex.url, amount: owed / 100, reused: true });
     const when = new Date(`${b.date}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
@@ -135,6 +137,7 @@ Deno.serve(async (req) => {
     if (!cus) cus = await stripe("POST", "customers", key, { ...cusData, "metadata[valetiq_customer]": c.id, "metadata[business_id]": b.business_id }, `cus-${c.id}-${billEmail}-${billName}`.slice(0, 250));
     else cus = await stripe("POST", `customers/${cus.id}`, key, cusData);
     const meta = { "metadata[booking_id]": b.id, "metadata[business_id]": b.business_id, "metadata[ref]": b.ref };
+    const { data: invNo } = await admin.rpc("next_invoice_number", { p_business: b.business_id });
     const inv = await stripe("POST", "invoices", key, {
       customer: cus.id, collection_method: "send_invoice", days_until_due: String(Math.max(dueDays, 1)), auto_advance: "false",
       pending_invoice_items_behavior: "exclude",
@@ -143,9 +146,10 @@ Deno.serve(async (req) => {
       "custom_fields[0][name]": "Booking ref", "custom_fields[0][value]": b.ref,
       "custom_fields[1][name]": "Service date", "custom_fields[1][value]": `${when.replace(/ \d{4}$/, "")} ${String(b.start_time).slice(0, 5)}`.slice(0, 140), ...meta,
       ...(isB && person ? { "custom_fields[2][name]": "Attn", "custom_fields[2][value]": person.slice(0, 140) } : {}),
-    }, `inv3-${b.id}-${owed}-${paid}-${billName}-${Date.now() >> 16}`.slice(0, 250));
+    }, `inv4-${b.id}-${invNo}`.slice(0, 250));
     await stripe("POST", "invoiceitems", key, { customer: cus.id, invoice: inv.id, currency: "gbp", amount: String(Math.round(Number(b.total) * 100)), description: `${b.service_name} — ${when} at ${String(b.start_time).slice(0, 5)}` }, `ii-${inv.id}-svc`);
     if (paid > 0) await stripe("POST", "invoiceitems", key, { customer: cus.id, invoice: inv.id, currency: "gbp", amount: String(-Math.round(paid * 100)), description: "Deposit / payments already received — thank you" }, `ii-${inv.id}-dep`);
+    if (invNo) await stripe("POST", `invoices/${inv.id}`, key, { number: String(invNo) });
     const fin = await stripe("POST", `invoices/${inv.id}/finalize`, key, { auto_advance: "true" });
     const row: any = { id: fin.id, business_id: b.business_id, booking_id: b.id, amount_pence: owed, url: fin.hosted_invoice_url, pdf: fin.invoice_pdf, number: fin.number,
       due_date: fin.due_date ? new Date(fin.due_date * 1000).toISOString().slice(0, 10) : null };
@@ -156,6 +160,6 @@ Deno.serve(async (req) => {
       if (!emailed) { try { await stripe("POST", `invoices/${inv.id}/send`, key, {}); sent = true; } catch (_) { /* hosted link still works */ } }
       if (emailed || sent) await admin.from("payment_links").update({ sent_at: new Date().toISOString() }).eq("id", fin.id);
     }
-    return json({ url: fin.hosted_invoice_url, pdf: fin.invoice_pdf, number: fin.number, amount: owed / 100, emailed, sent, to: billEmail, email_error: emailError });
+    return json({ url: fin.hosted_invoice_url, pdf: fin.invoice_pdf, number: fin.number, amount: owed / 100, emailed, sent, to: billEmail, email_error: emailError, copy: copyInfo });
   } catch (e) { return json({ error: (e as Error).message }, 500); }
 });

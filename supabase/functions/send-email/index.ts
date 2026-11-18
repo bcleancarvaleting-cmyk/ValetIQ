@@ -109,10 +109,17 @@ ${isInv && kind === "invoice" ? "" : `<p style="margin:24px 0 0;font-size:14px;c
     const send = (x: any) => fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify(x) });
     const r = await send(body);
     const j = await r.json(); if (!r.ok) return json({ error: j?.message || "Email failed" }, 400);
+    let copy: any = wantCopy ? { ok: true, to: st.email, how: "cc" } : null;
     if (wantCopy && b.link_id) {
       const copyHtml = html.replace(/<img src="[^"]*\/inv\?l=[^"]*&px=1"[^>]*>/, "").split(esc(payUrl)).join(esc(b.pay_link || site));
-      try { await send({ ...body, to: [st.email], subject: `Copy: ${subject} (sent to ${to})`, html: copyHtml, reply_to: undefined }); } catch (_) { /* copy is best-effort */ }
+      const cb = { ...body, to: [st.email], subject: `Copy: ${subject} (sent to ${to})`, html: copyHtml }; delete cb.reply_to; delete cb.cc;
+      copy = { ok: false, to: st.email, how: "copy" };
+      for (let i = 0; i < 3 && !copy.ok; i++) {
+        if (i) await new Promise((r) => setTimeout(r, 1200));
+        try { const cr = await send(cb); const cj = await cr.json().catch(() => ({})); copy.ok = cr.ok; copy.id = cj?.id; if (!cr.ok) copy.error = cj?.message || `HTTP ${cr.status}`; } catch (e) { copy.error = (e as Error).message; }
+      }
+      console.log("invoice copy", JSON.stringify(copy));
     }
-    return json({ sent: true, id: j.id, to });
+    return json({ sent: true, id: j.id, to, copy });
   } catch (e) { return json({ error: (e as Error).message }, 500); }
 });

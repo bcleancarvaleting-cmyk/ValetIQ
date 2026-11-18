@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
       const cus = await stripeCustomer(key, c, to); if (cus.email !== to) await stripe("POST", `customers/${cus.id}`, key, { email: to });
       const { data: biz } = await db.from("businesses").select("name,settings").eq("id", c.business_id).single(); const I: any = (biz as any)?.settings?.invoice || {};
       const monthName = new Date(`${from}T12:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+      const { data: invNo } = await db.rpc("next_invoice_number", { p_business: c.business_id });
       const inv = await stripe("POST", "invoices", key, { customer: cus.id, collection_method: "send_invoice", days_until_due: String(Math.max(Number(I.dueDays ?? 30), 7)), auto_advance: "false", pending_invoice_items_behavior: "exclude",
         description: `${c.company_name || c.first_name} — valeting for ${monthName}`, footer: [I.sortCode && I.accNo ? `Bank transfer: ${I.accName ? I.accName + " · " : ""}Sort code ${I.sortCode} · Account ${I.accNo}` : "", I.thanks || `Thanks for using ${(biz as any)?.name}`].filter(Boolean).join("\n\n"),
         "metadata[type]": "statement", "metadata[business_id]": c.business_id, "metadata[customer_id]": c.id, "metadata[month]": b.month });
@@ -78,6 +79,7 @@ Deno.serve(async (req) => {
         const reg = (x.cars || []).map((v: any) => v.reg).filter(Boolean).join(", ");
         await stripe("POST", "invoiceitems", key, { customer: cus.id, invoice: inv.id, currency: "gbp", amount: String(x.owed), description: `${new Date(`${x.date}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · ${x.service_name}${reg ? " · " + reg : ""} · ${x.ref}` });
       }
+      if (invNo) await stripe("POST", `invoices/${inv.id}`, key, { number: String(invNo) });
       const fin = await stripe("POST", `invoices/${inv.id}/finalize`, key, { auto_advance: "true" });
       try { await stripe("POST", `invoices/${inv.id}/send`, key, {}); } catch (_) { /* link still works */ }
       await db.from("bookings").update({ statement_id: fin.id }).in("id", rows.map((x: any) => x.id));
