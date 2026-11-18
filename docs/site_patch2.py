@@ -106,3 +106,5 @@ R("{k:'water, electric, power',a:'No need — we\\'re fully self-sufficient with
 R("We need access to water and electricity, or we will bring our own (please let us know).","We bring our own water, but need access to a power socket within reach of the vehicle.")
 R("['Do I need to provide water and power?','No — we are fully self-sufficient, though access to an outside tap is always helpful.']","['Do I need to provide water and power?','We bring our own water — we just need access to a power socket near the car.']")
 R("['Turned up on time, fully self-sufficient and the interior is like new. Great value.',5]","['Turned up on time, brought their own water and the interior is like new. Great value.',5]")
+
+R('<meta charset="utf-8">','<meta charset="utf-8"><meta name="google-site-verification" content="4R4QseL6JL9ga6bITPFnNC0Otcp4xOnaQ28lyqzb-04" />',1) if s.count('<meta charset="utf-8">')==1 else R('<meta charset="UTF-8">','<meta charset="UTF-8"><meta name="google-site-verification" content="4R4QseL6JL9ga6bITPFnNC0Otcp4xOnaQ28lyqzb-04" />',1)
