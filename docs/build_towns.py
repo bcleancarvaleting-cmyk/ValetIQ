@@ -133,7 +133,7 @@ def town_page(kind, t):
 <div class="chips"><span class="chip">📍 {E(name)} · {E(pc)}</span><span class="chip">💧 Own water on board</span><span class="chip">🛡 Fully insured</span><span class="chip">⭐ 5-star rated</span></div></div></div>
 <section><div class="w"><h2>{K['h']} services in {E(name)}</h2><p class="mu">{E(fmt(pick(K['intros'], kind + name)))} Prices shown are for a small car — the exact price for your vehicle shows when you book.</p>{svc_cards(K['svcs'])}</div></section>
 <section><div class="w"><h2>Why {E(name)} drivers choose {BIZ}</h2><ul class="t"><li>We come to you anywhere in {E(name)}</li><li>We bring the water — you just need a power socket</li><li>Fully insured and professionally trained</li><li>Online booking with instant confirmation</li><li>Premium, pH-safe products only</li><li>Ceramic coatings with a verifiable certificate</li></ul>
-<p class="mu" style="margin-top:16px">{base_line(t)} We work right across the {E(dist)} area, including {E(', '.join(x[0] for x in nb[:5]))}. If you are in {E(pc)} you are in our regular weekly coverage.</p></div></section>
+<p class="mu" style="margin-top:16px">We work right across the {E(dist)} area, including {E(', '.join(x[0] for x in nb[:5]))}. If you are in {E(pc)} you are in our regular weekly coverage.</p></div></section>
 <section><div class="w"><h2>{K['h']} in {E(name)} — FAQs</h2>{''.join(f'<details><summary>{E(q)}</summary><p>{E(a)}</p></details>' for q, a in faqs)}</div></section>
 <section><div class="w cta"><div class="kick">Business &amp; fleet</div><h2 style="margin-top:6px">Running a fleet in {E(name)}?</h2><p class="mu">Company cars, vans and dealership stock valeted at your premises with monthly invoicing.</p><a class="btn p" href="/fleet-valeting">Fleet valeting</a></div></section>
 <section><div class="w"><h3>Also in {E(name)}</h3><div class="chips">{''.join(f'<a class="chip" href="/{k}/{sl}">{KINDS[k]["h"]} in {E(name)}</a>' for k in others)}</div>
@@ -148,12 +148,12 @@ def town_page(kind, t):
 def areas_page():
     by = {}
     for t in TOWNS: by.setdefault(t[4], []).append(t)  # TOWNS is already sorted nearest-first from Sheerness
-    body = '<div class="hero"><div class="w"><div class="kick">Coverage</div><h1>Areas we cover — from Sheerness across Kent</h1><p class="lead">We&#39;re based in Sheerness on the Isle of Sheppey and cover Swale, Medway and the rest of Kent, closest towns first. Fully mobile with our own water on board — pick your town below.</p><div class="row"><a class="btn p" href="/?book=1">Book online</a><a class="btn" href="/?areas=1">Check your postcode</a></div></div></div>'
+    body = '<div class="hero"><div class="w"><div class="kick">Coverage</div><h1>Areas we cover across Kent</h1><p class="lead">We cover the whole of Kent. Fully mobile with our own water on board — pick your town below.</p><div class="row"><a class="btn p" href="/?book=1">Book online</a><a class="btn" href="/?areas=1">Check your postcode</a></div></div></div>'
     for d in sorted(by, key=lambda d: min(miles(t) for t in by[d])):
         body += f'<section><div class="w"><h2>{E(d)}</h2><div class="grid">'
         for t in by[d]:
             s = slug(t[0])
-            body += f'<div class="card"><h3>{E(t[0])}</h3><div class="mu" style="font-size:13px">{E(t[3])} · {round(miles(t))} mi from Sheerness</div><div class="chips">' + ''.join(f'<a class="chip" href="/{k}/{s}">{KINDS[k]["h"]}</a>' for k in KINDS) + '</div></div>'
+            body += f'<div class="card"><h3>{E(t[0])}</h3><div class="mu" style="font-size:13px">{E(t[3])}</div><div class="chips">' + ''.join(f'<a class="chip" href="/{k}/{s}">{KINDS[k]["h"]}</a>' for k in KINDS) + '</div></div>'
         body += '</div></div></section>'
     return page(f'Areas we cover | Mobile valeting & detailing across Kent | {BIZ}', 'Mobile car valeting, detailing and ceramic coatings across Kent — Maidstone, Medway, Tonbridge, Tunbridge Wells, Sevenoaks, Ashford, Canterbury, Thanet and more.', SITE + '/areas', body, {"@context": "https://schema.org", **biz_ld()})
 
