@@ -270,5 +270,18 @@ R("function refCapture(){",r"""function siteTrack(){try{if(sessionStorage.getIte
  sessionStorage.setItem('bc-trk','1');LIVE.sbc.rpc('track_view',{p_business:LIVE.biz.id,p_source:src,p_path:location.pathname,p_visitor:v}).then(()=>{},()=>{})}catch(e){}}
 function refCapture(){""")
 
+# ---- no flash of demo content: cover until real content is ready, and remember it for next time ----
+R('<div id="app"></div>','<div id="bootcover" style="position:fixed;inset:0;z-index:9999;background:#07080a;display:grid;place-items:center;transition:opacity .25s"><div style="width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:#2f7bff;border-radius:50%;animation:bcspin .8s linear infinite"></div></div><style>@keyframes bcspin{to{transform:rotate(360deg)}}</style><div id="app"></div>')
+R("render();refCapture()}catch(e){console.warn('Live content not loaded',e)}}","render();refCapture();try{localStorage.setItem('bc-live-cache',JSON.stringify({t:Date.now(),biz:{id:biz.id,name:biz.name,settings:biz.settings},sv:sv.data,pl:pl.data,sl:sl.data,ga:t.gallery}))}catch(e){}}catch(e){console.warn('Live content not loaded',e)}}")
+R("""window.addEventListener('load',loadLive);
+
+DB=liveDB();
+render();""","""function bootDone(){const c=document.getElementById('bootcover');if(c){c.style.opacity=0;setTimeout(()=>c.remove(),260)}}
+DB=liveDB();
+(function(){try{const c=JSON.parse(localStorage.getItem('bc-live-cache')||'null');if(c&&c.biz&&Date.now()-c.t<30*864e5){applyLive(c.biz,c.sv||[],c.pl||[],c.sl||[]);T().gallery=c.ga||[];window.__bcCached=1}}catch(e){console.warn(e)}})();
+render();if(window.__bcCached)bootDone();setTimeout(bootDone,6000);
+let _bcLive=false;function startLive(){if(_bcLive||!window.supabase)return;_bcLive=true;Promise.resolve(loadLive()).finally(bootDone)}
+startLive();document.addEventListener('DOMContentLoaded',startLive);window.addEventListener('load',()=>{startLive();setTimeout(bootDone,1500)});""")
+
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))
