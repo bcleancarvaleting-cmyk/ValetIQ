@@ -340,5 +340,8 @@ R("let HI=0;function heroGo(n,abs){const sl=document.querySelectorAll('#hero .sl
 R("v.addEventListener('timeupdate',()=>{if(multi&&v.currentTime>15)nxt()})","v.addEventListener('timeupdate',()=>{if(multi&&(v.currentTime>15||(v.duration&&v.duration-v.currentTime<1.1)))nxt()})")
 
 R("v.addEventListener('playing',()=>{v._ok=1;","v.addEventListener('canplay',()=>{if(v.parentNode&&v.parentNode.classList.contains('on')&&v.paused){const p=v.play();if(p&&p.catch)p.catch(()=>{})}});v.addEventListener('playing',()=>{v._ok=1;")
+R("['touchstart','scroll','click','keydown'].forEach(ev=>addEventListener(ev,()=>heroVid(),{passive:true,once:true}))",
+"const kick=()=>{const vs=[...document.querySelectorAll('#hero video')];if(vs.length&&vs.some(v=>!v.paused))return;heroVid()};['touchstart','touchend','pointerup','click','keydown','scroll','wheel'].forEach(ev=>addEventListener(ev,kick,{passive:true,capture:true}));setInterval(()=>{if(!document.hidden)kick()},2000)")
+R('src="${h.video}" muted','src="${h.video}#t=0.1" muted')
 open('/home/claude/live/index.html','w').write(s)
 print('built',len(s))
