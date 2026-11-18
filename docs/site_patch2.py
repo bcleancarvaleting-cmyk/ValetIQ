@@ -45,6 +45,8 @@ R("function lbReturn(){const q=new URLSearchParams(location.search);",
 "function lbReturn(){const q=new URLSearchParams(location.search);if(q.get('cert')){const c=q.get('cert');history.replaceState(null,'',location.pathname);showCert(c);return}if(q.get('fleet')){history.replaceState(null,'',location.pathname);setTimeout(fleetForm,300);return}if(q.get('areas')){history.replaceState(null,'',location.pathname);setTimeout(()=>{const e=$('s-cover');if(e)e.scrollIntoView({behavior:'smooth'})},600);return}")
 
 NEWJS=r'''
+/* ===== top review bar ===== */
+function topRvBar(S){const t=(S.reviewBar||'').trim();if(!t)return'';return`<button class="rvbar" onclick="const e=document.querySelector('.rvm');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})" aria-label="Read our reviews"><span class="st">★★★★★</span><span>${esc(t)}</span><span class="sb" style="background:#4285F4">G</span><span class="sb" style="background:#1877F2">f</span></button>`}
 /* ===== next free slot ===== */
 let NFS=null;function nfsHTML(){return NFS?`<button class="nfs" onclick="BK=null;go('book')"><i></i>Next available: <b>${NFS}</b><span>Book →</span></button>`:''}
 async function nextFree(){try{if(!LIVE||!LIVE.sbc)return;const st=LIVE.biz.settings||{},id=LIVE.biz.id,from=TODAY(),to=addD(from,45);
@@ -115,3 +117,8 @@ R("if(q.get('book')&&liveOn()){history.replaceState(null,'',location.pathname);r
 
 # /booking (and /book-now) is a real page that opens booking straight away — for Google's "Book" button
 R("if(q.get('book')&&liveOn()){","if((q.get('book')||/^\\/(booking|book-now)\\/?$/.test(location.pathname))&&liveOn()){")
+
+# thin review bar at the very top (trust bar → hero → bookings)
+R('app.innerHTML=`${appStrip(S)}<div class="wrap">\n <header class="snav">','app.innerHTML=`${topRvBar(S)}${appStrip(S)}<div class="wrap">\n <header class="snav">')
+R("S.appStrip=st.appStrip===true;","S.appStrip=st.appStrip===true;S.reviewBar=st.reviewBar===undefined?'100+ 5-star reviews on Google & Facebook':st.reviewBar;")
+R(".stars{color:#fbbf24;letter-spacing:2px}",".stars{color:#fbbf24;letter-spacing:2px}.rvbar{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:7px 12px;border:0;border-bottom:1px solid rgba(255,255,255,.08);background:linear-gradient(90deg,#06090f,#0e1626 50%,#06090f);color:#e8edf7;font-family:inherit;font-weight:600;font-size:12.5px;line-height:1.2;cursor:pointer;position:relative;overflow:hidden;white-space:nowrap}.rvbar .st{color:#fbbf24;letter-spacing:1px;font-size:12px}.rvbar .sb{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:4px;color:#fff;font:800 10px/1 Arial}.rvbar:after{content:'';position:absolute;top:0;bottom:0;width:80px;left:-100px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);animation:rvsh 4.5s ease-in-out infinite}@keyframes rvsh{0%,60%{left:-100px}100%{left:110%}}@media(max-width:430px){.rvbar{font-size:12px;gap:6px;padding:7px 8px}.rvbar .sb{display:none}.rvbar .st{letter-spacing:0}}")
