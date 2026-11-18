@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     const userDb = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: req.headers.get("Authorization") || "" } } });
     const { booking_id, send, action } = await req.json();
     // RLS: only members of the booking's business can read it
-    const { data: b, error } = await userDb.from("bookings").select("id,ref,business_id,total,status,service_name,date,start_time,customer_id,customers(id,email,first_name,last_name,mobile),businesses(name,settings)").eq("id", booking_id).single();
+    const { data: b, error } = await userDb.from("bookings").select("id,ref,business_id,total,status,service_name,date,start_time,customer_id,customers(id,email,first_name,last_name,mobile,business_account,company_name,invoice_email,company_address,house,address,postcode),businesses(name,settings)").eq("id", booking_id).single();
     if (error || !b) return json({ error: "Booking not found" }, 404);
     if (b.status === "Cancelled") return json({ error: "This booking is cancelled" }, 400);
     const key = (await keysFor(b.business_id)).secret;
@@ -60,14 +60,38 @@ Deno.serve(async (req) => {
     const owed = Math.round((Number(b.total) - paid) * 100);
     if (owed < 30) return json({ error: "Nothing left to pay on this booking" }, 400);
     const c: any = (b as any).customers || {}; const biz: any = (b as any).businesses || {};
-    const hasEmail = realEmail(c.email);
+    const isB = !!(c.business_account && String(c.company_name || "").trim());
+    const person = `${c.first_name || ""} ${c.last_name || ""}`.trim();
+    const billName = isB ? String(c.company_name).trim() : person || "Customer";
+    const billEmail = isB && realEmail(c.invoice_email) ? c.invoice_email : c.email;
+    const hasEmail = realEmail(billEmail);
+    const addrLines = (isB && String(c.company_address || "").trim() ? String(c.company_address).split(/\n+/) : [[c.house, c.address].filter(Boolean).join(" "), c.postcode || ""]).map((x: string) => x.trim()).filter(Boolean);
+    const addr: Record<string, string> = {};
+    if (addrLines.length) {
+      const pc = addrLines.find((x: string) => /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(x)) || (isB ? "" : c.postcode || "");
+      const rest = addrLines.filter((x: string) => x !== pc);
+      addr["address[line1]"] = (rest[0] || "").slice(0, 200); if (rest[1]) addr["address[line2]"] = rest.slice(1, rest.length > 2 ? -1 : undefined).join(", ").slice(0, 200);
+      if (rest.length > 2) addr["address[city]"] = rest[rest.length - 1].slice(0, 100);
+      if (pc) addr["address[postal_code]"] = pc.toUpperCase(); addr["address[country]"] = "GB";
+    }
     const I: any = biz.settings?.invoice || {};
     const thanks = I.thanks || `Thanks for using ${biz.name || "us"}`;
     const bank = I.sortCode && I.accNo ? `Prefer bank transfer? ${I.accName ? I.accName + " · " : ""}Sort code ${I.sortCode} · Account ${I.accNo} · Reference ${b.ref}` : "";
     const dueDays = Number(I.dueDays ?? 7);
     // reuse an open invoice / recent card page for the same amount
     const { data: existing } = await admin.from("payment_links").select("*").eq("booking_id", b.id).is("paid_at", null).eq("amount_pence", owed).order("created_at", { ascending: false }).limit(1);
-    const ex = existing && existing[0];
+    let ex: any = existing && existing[0];
+    // an open invoice with the old name/details (e.g. customer switched to a business) is voided and recreated
+    if (ex && ex.id.startsWith("in_")) {
+      try {
+        const old = await stripe("GET", `invoices/${ex.id}`, key);
+        if (old.status === "open" && (old.customer_name || "") !== billName) {
+          await stripe("POST", `invoices/${ex.id}/void`, key, {});
+          await admin.from("payment_links").delete().eq("id", ex.id); ex = null;
+        } else if (old.status === "paid") { return json({ error: "Stripe shows this invoice as already paid — it will update shortly, or record the payment" }, 400); }
+        else if (old.status !== "open") { await admin.from("payment_links").delete().eq("id", ex.id); ex = null; }
+      } catch (e) { if (/already paid/.test(String((e as Error).message))) throw e; }
+    }
     if (ex && ex.id.startsWith("in_")) {
       let emailed = false, sent = false;
       if (send) {
@@ -104,12 +128,9 @@ Deno.serve(async (req) => {
     let cus: any = null;
     const found = await stripe("GET", `customers/search?query=${encodeURIComponent(`metadata['valetiq_customer']:'${c.id}'`)}`, key);
     cus = found.data?.[0];
-    if (!cus) cus = await stripe("POST", "customers", key, {
-      name: `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Customer",
-      email: c.email, ...(c.mobile ? { phone: c.mobile } : {}),
-      "metadata[valetiq_customer]": c.id, "metadata[business_id]": b.business_id,
-    }, `cus-${c.id}-${c.email}`);
-    else if (cus.email !== c.email) cus = await stripe("POST", `customers/${cus.id}`, key, { email: c.email });
+    const cusData = { name: billName, email: billEmail, ...(c.mobile ? { phone: c.mobile } : {}), ...addr };
+    if (!cus) cus = await stripe("POST", "customers", key, { ...cusData, "metadata[valetiq_customer]": c.id, "metadata[business_id]": b.business_id }, `cus-${c.id}-${billEmail}-${billName}`.slice(0, 250));
+    else cus = await stripe("POST", `customers/${cus.id}`, key, cusData);
     const meta = { "metadata[booking_id]": b.id, "metadata[business_id]": b.business_id, "metadata[ref]": b.ref };
     const inv = await stripe("POST", "invoices", key, {
       customer: cus.id, collection_method: "send_invoice", days_until_due: String(Math.max(dueDays, 1)), auto_advance: "false",
@@ -118,7 +139,8 @@ Deno.serve(async (req) => {
       footer: [bank ? bank.replace("Prefer bank transfer? ", "Bank transfer: ") : "", thanks].filter(Boolean).join("\n\n").slice(0, 5000),
       "custom_fields[0][name]": "Booking ref", "custom_fields[0][value]": b.ref,
       "custom_fields[1][name]": "Service date", "custom_fields[1][value]": `${when.replace(/ \d{4}$/, "")} ${String(b.start_time).slice(0, 5)}`.slice(0, 140), ...meta,
-    }, `inv2-${b.id}-${owed}-${paid}`);
+      ...(isB && person ? { "custom_fields[2][name]": "Attn", "custom_fields[2][value]": person.slice(0, 140) } : {}),
+    }, `inv3-${b.id}-${owed}-${paid}-${billName}-${Date.now() >> 16}`.slice(0, 250));
     await stripe("POST", "invoiceitems", key, { customer: cus.id, invoice: inv.id, currency: "gbp", amount: String(Math.round(Number(b.total) * 100)), description: `${b.service_name} — ${when} at ${String(b.start_time).slice(0, 5)}` }, `ii-${inv.id}-svc`);
     if (paid > 0) await stripe("POST", "invoiceitems", key, { customer: cus.id, invoice: inv.id, currency: "gbp", amount: String(-Math.round(paid * 100)), description: "Deposit / payments already received — thank you" }, `ii-${inv.id}-dep`);
     const fin = await stripe("POST", `invoices/${inv.id}/finalize`, key, { auto_advance: "true" });
