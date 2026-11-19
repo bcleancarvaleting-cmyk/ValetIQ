@@ -50,6 +50,10 @@ function lbAttSid(){let v='';try{v=sessionStorage.getItem('bc-att');if(!v){v=Mat
 function lbAtt(step,x){try{if(!LIVE||!LIVE.sbc)return;const g=id=>($(id)?$(id).value||'':'').trim();const d=LB.d||{},sv=T().services.find(s=>s.id===LB.svc)||{};let src='';try{src=sessionStorage.getItem('bc-src')||''}catch(e){}
  const p={step,first:g('lb_f')||d.first||'',last:g('lb_l')||d.last||'',mobile:g('lb_m')||d.mobile||'',email:g('lb_e')||d.email||'',postcode:g('lb_p')||d.postcode||'',service_id:LB.svc||'',service:sv.name||'',date:LB.date||'',time:LB.time||'',source:src,...(x||{})};
  LIVE.sbc.rpc('track_booking_attempt',{p_business:LIVE.biz.id,p_session:lbAttSid(),p}).then(()=>{},()=>{})}catch(e){}}
+/* ===== bandwidth savers ===== */
+function lazyBg(){const els=document.querySelectorAll('[data-bg]');if(!els.length)return;if(!window._lbo)window._lbo=window.IntersectionObserver?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const el=e.target;el.style.backgroundImage=`url('${el.dataset.bg}')`;el.removeAttribute('data-bg');window._lbo.unobserve(el)}}),{rootMargin:'300px'}):null;
+ els.forEach(el=>{if(el._lb)return;el._lb=1;if(window._lbo)window._lbo.observe(el);else{el.style.backgroundImage=`url('${el.dataset.bg}')`;el.removeAttribute('data-bg')}})}
+function lowData(){const c=navigator.connection;return!!(c&&(c.saveData||/(^|-)2g$|3g/.test(c.effectiveType||'')))}
 /* ===== top review bar ===== */
 function topRvBar(S){const t=(S.reviewBar||'').trim();if(!t)return'';return`<button class="rvbar" onclick="const e=document.querySelector('.rvm');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})" aria-label="Read our reviews"><span class="st">★★★★★</span><span>${esc(t)}</span><span class="sb" style="background:#4285F4">G</span><span class="sb" style="background:#1877F2">f</span></button>`}
 /* ===== next free slot ===== */
@@ -102,7 +106,7 @@ async function showCert(code){modal(`<div style="text-align:center;padding:30px"
   modal(`<div class="row" style="gap:10px;margin-bottom:10px"><span style="font-size:30px">${c.void?'⛔':live?'✅':'⌛'}</span><div><h3 style="margin:0">${c.void?'This certificate has been cancelled':live?'Genuine certificate':'Warranty period ended'}</h3><div class="tiny mu">${esc(c.code)} · ${esc(c.product)} · ${live?'protected until '+certFmt(exp):'ended '+certFmt(exp)}</div></div></div>
    <img src="${url}" alt="Ceramic coating certificate" style="width:100%;border-radius:12px;display:block"><div class="row" style="gap:8px;margin-top:12px"><a class="btn pri" href="${url}" download="${esc(c.code)}.png">Download certificate</a><button class="btn" onclick="BK=null;closeModal();go('book')">Book a maintenance valet</button></div>`,{wide:true})}
  catch(e){modal(`<h3>Couldn't load the certificate</h3><p class="mu">${esc((e&&e.message)||'Please try again')}</p>`)}}
-setInterval(baHint,700);
+setInterval(()=>{baHint();lazyBg()},500);
 '''.replace('__KT__',KT)
 R("let NFS_PLACEHOLDER=0;","") if "let NFS_PLACEHOLDER=0;" in s else None
 R("function bootDone(){",NEWJS+"\nfunction bootDone(){")
@@ -146,3 +150,11 @@ R('<input id="lb_e" type="email" value="${esc(d.email||\'\')}" autocomplete="ema
 R("LB.step=4;renderLB()}","LB.step=4;lbAtt(4);renderLB()}")
 R('onclick="LB.step=3;renderLB()"','onclick="lbAtt(2);LB.step=3;renderLB()"')
 R("LB.res=data;try{sessionStorage.setItem('bc-pending'","LB.res=data;lbAtt(5,{booking_id:data.id});try{sessionStorage.removeItem('bc-att')}catch(e){}try{sessionStorage.setItem('bc-pending'")
+
+# ---- bandwidth: lazy-load card/gallery images, load the next hero clip only near the end, skip video on Save-Data / slow connections
+R("""<div class="card svc img ${s.pop?'pop-on':''}" style="background-image:url('${svcImg(t,s)}')">""","""<div class="card svc img ${s.pop?'pop-on':''}" data-bg="${svcImg(t,s)}">""")
+R("""return`<div class="ba" style="background-image:url('${a}')"><div class="b" style="background-image:url('${b}');clip-path:inset(0 50% 0 0)"></div>""","""return`<div class="ba" data-bg="${a}"><div class="b" data-bg="${b}" style="clip-path:inset(0 50% 0 0)"></div>""")
+R("""v.addEventListener('playing',()=>{v._ok=1;const nx=sl[(sl.indexOf(v.parentNode)+1)%sl.length];const nv=nx&&nx.querySelector('video');if(nv&&nv.preload!=='auto')nv.preload='auto'});""",
+  """v.addEventListener('playing',()=>{v._ok=1});v.addEventListener('timeupdate',()=>{if(!v.duration||v.duration-v.currentTime>5)return;const nx=sl[(sl.indexOf(v.parentNode)+1)%sl.length];const nv=nx&&nx.querySelector('video');if(nv&&nv!==v&&nv.preload!=='auto')nv.preload='auto'});""")
+
+R("""${h.video?`<video autoplay muted loop playsinline preload="${i===0?'auto':'metadata'}\"""","""${h.video&&!lowData()?`<video ${i===0?'autoplay ':''}muted loop playsinline preload="${i===0?'auto':'none'}\"""")
