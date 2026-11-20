@@ -74,7 +74,7 @@ label.f{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px;font-weig
 <body>
 <div id="app"><div class="spin"></div></div>
 <script src="/cert.js?v=1" defer></script><script src="/config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script><script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"><\/script>')</script>
 <script>
 /* ================= helpers ================= */
 const CFG=window.VALETIQ||{};
@@ -100,7 +100,7 @@ const ICON={inv:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2
 const ico=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${ICON[k]}"/></svg>`;
 
 /* ================= state ================= */
-const sb=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const sb=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,lock:async(n,t,fn)=>await fn()}});
 const S={user:null,biz:null,services:[],slots:[],blocked:[],view:'home',date:TODAY(),dv:'day',cq:'',cust:null};
 const svcById=id=>S.services.find(s=>s.id===id);
 const priceFor=(s,size)=>size==2?(s.price_large??s.price_medium??s.price_small):size==1?(s.price_medium??s.price_small):s.price_small;
@@ -111,7 +111,8 @@ const owed=(b,pays)=>b.status==='Cancelled'?0:Math.max(0,r2(+b.total-paid(b,pays
 const endMin=b=>b.days>0?tm(S.biz.settings.hours?.end||'18:00'):tm(b.start_time)+b.duration_mins;
 
 /* ================= boot / auth ================= */
-async function boot(){
+function bootStuck(){if(S.biz||!$('app'))return;const a=$('app');if(a.querySelector('.auth'))return;a.innerHTML=`<div class="auth" style="text-align:center"><div style="font-size:42px">📶</div><h2>Having trouble connecting</h2><p class="mu">Your bookings are safe — the app just couldn't reach the server. Check your signal and try again.</p><button class="btn pri block" onclick="location.reload()">Try again</button><button class="btn block" style="margin-top:8px" onclick="try{Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k))}catch(e){}location.reload()">Sign in again</button></div>`}
+async function boot(){setTimeout(bootStuck,15000);
  if('serviceWorker' in navigator)navigator.serviceWorker.register('/admin/sw.js').catch(()=>{});
  const{data:{session}}=await sb.auth.getSession();
  sb.auth.onAuthStateChange((ev,ses)=>{if(ev==='PASSWORD_RECOVERY')return newPassword();if(ev==='SIGNED_OUT'){S.user=null;renderAuth()}});

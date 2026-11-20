@@ -158,3 +158,9 @@ R("""v.addEventListener('playing',()=>{v._ok=1;const nx=sl[(sl.indexOf(v.parentN
   """v.addEventListener('playing',()=>{v._ok=1});v.addEventListener('timeupdate',()=>{if(!v.duration||v.duration-v.currentTime>5)return;const nx=sl[(sl.indexOf(v.parentNode)+1)%sl.length];const nv=nx&&nx.querySelector('video');if(nv&&nv!==v&&nv.preload!=='auto')nv.preload='auto'});""")
 
 R("""${h.video?`<video autoplay muted loop playsinline preload="${i===0?'auto':'metadata'}\"""","""${h.video&&!lowData()?`<video ${i===0?'autoplay ':''}muted loop playsinline preload="${i===0?'auto':'none'}\"""")
+
+# ---- resilience: pinned supabase-js with a backup CDN, no auth lock hangs, real snapshot instead of demo data if Supabase is unreachable
+R('<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>','<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script>')
+R("{auth:{storageKey:'bc-customer-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}}","{auth:{storageKey:'bc-customer-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,lock:async(n,t,fn)=>await fn()}}")
+R("render();if(window.__bcCached)bootDone();setTimeout(bootDone,6000);","render();if(window.__bcCached)bootDone();else fetch('/snapshot.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(c=>{if(c&&c.biz&&!LIVE){applyLive(c.biz,c.sv||[],c.pl||[],c.sl||[]);T().gallery=c.ga||[];T().reviews=mapRv(c.er);render();bootDone()}}).catch(()=>{});setTimeout(bootDone,6000);")
+R("window.addEventListener('load',()=>{startLive();setTimeout(bootDone,1500)});","window.addEventListener('load',()=>{if(!window.supabase){const x=document.createElement('script');x.src='https://unpkg.com/@supabase/supabase-js@2.119.2/dist/umd/supabase.js';x.onload=startLive;document.head.appendChild(x)}startLive();setTimeout(bootDone,1500)});")

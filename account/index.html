@@ -45,7 +45,7 @@ label.f{display:block;font-size:12px;color:var(--mu);margin:12px 0 4px;font-weig
 <body>
 <div id="app"><div class="spin"></div></div>
 <script src="/config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script><script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"><\/script>')</script>
 <script>
 const V=window.VALETIQ||{};const $=id=>document.getElementById(id);const val=id=>($(id)?$(id).value:'').trim();
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -57,7 +57,7 @@ function toast(m,err){const e=document.createElement('div');e.className='toast'+
 function sheet(html){closeSheet();const b=document.createElement('div');b.className='back';b.id='back';b.onclick=e=>{if(e.target===b)closeSheet()};b.innerHTML=`<div class="sheet">${html}</div>`;document.body.appendChild(b)}
 function closeSheet(){const b=$('back');if(b)b.remove()}
 const errMsg=e=>(e&&(e.message||e.error_description||e.msg))||String(e||'Something went wrong');
-const sb=window.supabase.createClient(V.supabaseUrl,V.supabaseKey,{auth:{storageKey:'bc-customer-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const sb=window.supabase.createClient(V.supabaseUrl,V.supabaseKey,{auth:{storageKey:'bc-customer-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,lock:async(n,t,fn)=>await fn()}});
 const A={biz:null,user:null,cust:null,bookings:[],subs:[],mode:'signup',recovery:false};
 const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isAndroid=/android/i.test(navigator.userAgent);
 const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;

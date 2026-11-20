@@ -18,7 +18,7 @@
 <link rel="icon" id="fav" href="data:,">
 <link rel="apple-touch-icon" id="ati" href="/admin/icon-192.png">
 <script defer src="/config.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -1102,7 +1102,7 @@ function lbReturn(){const q=new URLSearchParams(location.search);if(q.get('cert'
  if(ok){LB={step:5,svc:P.svc,date:P.date,time:P.time,d:P.d||{},res:{id:P.id||'',ref:ok}};if(P.date)return renderLB();modal(`<div style="text-align:center"><div style="font-size:52px">✅</div><h2>Payment received</h2><p class="mu">Your booking <b>${esc(ok)}</b> is confirmed. We'll be in touch before your appointment.</p></div>`)}
  else modal(`<h2>Payment not finished</h2><p class="mu">Your booking <b>${esc(no)}</b> isn't confirmed until the deposit is paid. We'll hold the slot for about 30 minutes.</p>${P.id?`<button class="btn pri block" onclick="lbRepay('${P.id}')">Pay deposit now</button>`:''}<p class="tiny mu" style="margin-top:10px">Changed your mind? Just close this — the slot will be released.</p>`)}
 /* ---- load live content from the valetIQ database ---- */
-async function loadLive(){try{if(!window.supabase||!window.VALETIQ)return;const V=window.VALETIQ;const sbc=window.supabase.createClient(V.supabaseUrl,V.supabaseKey,{auth:{storageKey:'bc-customer-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+async function loadLive(){try{if(!window.supabase||!window.VALETIQ)return;const V=window.VALETIQ;const sbc=window.supabase.createClient(V.supabaseUrl,V.supabaseKey,{auth:{storageKey:'bc-customer-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,lock:async(n,t,fn)=>await fn()}});
  const{data:biz,error}=await sbc.from('businesses').select('id,name,settings').eq('slug',V.business).single();if(error||!biz)return;LIVE={biz,sbc};siteTrack();
  const[sv,pl,sl,ga,er]=await Promise.all([sbc.from('services').select('*').eq('business_id',biz.id).order('sort'),sbc.from('plans').select('*').eq('business_id',biz.id),sbc.from('time_slots').select('*').eq('business_id',biz.id).order('start_time'),sbc.from('gallery_items').select('*').eq('business_id',biz.id).eq('show',true).order('sort').order('created_at',{ascending:false}).limit(12),sbc.from('ext_reviews').select('source,author,avatar,rating,text,posted_at,url').eq('business_id',biz.id).gte('rating',4).neq('text','').order('posted_at',{ascending:false}).limit(40)]);
  applyLive(biz,sv.data,pl.data,sl.data);const t=T();t.gallery=(ga.data||[]).map(g=>({id:g.id,title:g.title,before:g.before_url,after:g.after_url,date:g.done_on,loc:g.location,show:true}));t.reviews=mapRv(er&&er.data);render();refCapture();nextFree();clearInterval(window._nfi);window._nfi=setInterval(nextFree,300000);try{localStorage.setItem('bc-live-cache',JSON.stringify({t:Date.now(),biz:{id:biz.id,name:biz.name,settings:biz.settings},sv:sv.data,pl:pl.data,sl:sl.data,ga:t.gallery,er:er&&er.data||[]}))}catch(e){}}catch(e){console.warn('Live content not loaded',e)}}
@@ -1187,9 +1187,9 @@ setInterval(()=>{baHint();lazyBg()},500);
 function bootDone(){const c=document.getElementById('bootcover');if(c){c.style.opacity=0;setTimeout(()=>c.remove(),260)}}
 DB=liveDB();
 (function(){try{const c=JSON.parse(localStorage.getItem('bc-live-cache')||'null');if(c&&c.biz&&Date.now()-c.t<30*864e5){applyLive(c.biz,c.sv||[],c.pl||[],c.sl||[]);T().gallery=c.ga||[];T().reviews=mapRv(c.er);window.__bcCached=1}}catch(e){console.warn(e)}})();
-render();if(window.__bcCached)bootDone();setTimeout(bootDone,6000);
+render();if(window.__bcCached)bootDone();else fetch('/snapshot.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(c=>{if(c&&c.biz&&!LIVE){applyLive(c.biz,c.sv||[],c.pl||[],c.sl||[]);T().gallery=c.ga||[];T().reviews=mapRv(c.er);render();bootDone()}}).catch(()=>{});setTimeout(bootDone,6000);
 let _bcLive=false;function startLive(){if(_bcLive||!window.supabase)return;_bcLive=true;Promise.resolve(loadLive()).finally(bootDone)}
-startLive();document.addEventListener('DOMContentLoaded',startLive);window.addEventListener('load',()=>{startLive();setTimeout(bootDone,1500)});
+startLive();document.addEventListener('DOMContentLoaded',startLive);window.addEventListener('load',()=>{if(!window.supabase){const x=document.createElement('script');x.src='https://unpkg.com/@supabase/supabase-js@2.119.2/dist/umd/supabase.js';x.onload=startLive;document.head.appendChild(x)}startLive();setTimeout(bootDone,1500)});
 </script>
 </body>
 </html>
